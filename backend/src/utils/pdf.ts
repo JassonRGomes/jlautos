@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import { Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import sharp from 'sharp';
 
 // Helper to draw premium gold shield logo vector
 const drawVectorLogo = (doc: any, logoX: number, logoY: number) => {
@@ -39,7 +40,7 @@ const drawVectorLogo = (doc: any, logoX: number, logoY: number) => {
   doc.restore();
 };
 
-export const generatePDFReport = (
+export const generatePDFReport = async (
   res: Response,
   title: string,
   headers: string[],
@@ -78,7 +79,8 @@ export const generatePDFReport = (
   // Draw Logo (Left side)
   if (hasImageLogo) {
     try {
-      doc.image(resolvedLogoPath, 50, 50, { width: 50, height: 50 });
+      const pngBuffer = await sharp(resolvedLogoPath).png().toBuffer();
+      doc.image(pngBuffer, 50, 50, { width: 50, height: 50 });
     } catch (imageError) {
       console.error('[PDF logo drawing error, falling back to vector]:', imageError);
       drawVectorLogo(doc, 75, 75);
