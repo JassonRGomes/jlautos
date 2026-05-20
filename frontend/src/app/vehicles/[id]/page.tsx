@@ -431,7 +431,7 @@ export default function VehicleDetailsPage() {
                     }`}
                   >
                     <img
-                      src={img}
+                      src={getImageUrl(img, 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=1200')}
                       alt={`Thumbnail ${idx + 1}`}
                       className="w-full h-full object-cover"
                     />
