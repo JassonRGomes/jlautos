@@ -516,7 +516,7 @@ export default function Home() {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight text-foreground uppercase">
-              Curated Digital Showroom
+              J&L Digital Showroom – Experience Luxury, Drive Excellence
             </h2>
             <p className="text-sm text-text-muted mt-1">
               Currently listing <strong className="text-foreground">{filteredInventory.length}</strong> matching premium motorcars.
@@ -563,7 +563,7 @@ export default function Home() {
                       )}
                       {vehicle.status === 'SOLD' && (
                         <span className="px-3 py-1 text-[10px] font-bold tracking-wider uppercase bg-red-600/90 text-white rounded-full">
-                          ACQUIRED
+                          SOLD
                         </span>
                       )}
                     </div>

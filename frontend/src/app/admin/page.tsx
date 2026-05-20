@@ -837,7 +837,7 @@ export default function AdministrativePanel() {
                         >
                           <option value="ON_SALE">ON SALE / AVAILABLE</option>
                           <option value="RESERVED">RESERVED</option>
-                          <option value="SOLD">ACQUIRED / SOLD</option>
+                          <option value="SOLD">SOLD</option>
                         </select>
                       </div>
 

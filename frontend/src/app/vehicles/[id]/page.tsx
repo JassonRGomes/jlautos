@@ -372,7 +372,7 @@ export default function VehicleDetailsPage() {
               )}
               {vehicle.status === 'SOLD' && (
                 <span className="px-3.5 py-1 text-[10px] font-extrabold tracking-widest bg-red-500/15 text-red-500 rounded-full">
-                  ACQUIRED
+                  SOLD
                 </span>
               )}
             </div>
