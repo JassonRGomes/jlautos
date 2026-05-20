@@ -45,8 +45,12 @@ app.use(cookieParser());
 const uploadsDir = path.join(__dirname, '../public/uploads');
 app.use('/uploads', express.static(uploadsDir));
 
-// Serve a baseline luxury welcome page at root URL
-app.get('/', (req: Request, res: Response) => {
+// 2.5 Serve Static Frontend Files
+const frontendPath = path.join(__dirname, '../public');
+app.use(express.static(frontendPath, { extensions: ['html'] }));
+
+// API Root check
+app.get('/api', (req: Request, res: Response) => {
   res.status(200).json({
     dealership: 'J&L Autos',
     specification: 'Luxury Digital Showroom CRM REST API Engine',
@@ -64,9 +68,12 @@ app.use('/api/offers', offerRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// 4. Wildcard Unmatched Endpoint Handler (404)
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ message: 'Request endpoint not found in digital showroom route directories.' });
+// 4. Fallback for Next.js routing (Serve index.html for non-API routes if not found)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.originalUrl.startsWith('/api')) {
+    return res.status(404).json({ message: 'Request endpoint not found in digital showroom route directories.' });
+  }
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // 5. Global Error Middleware
