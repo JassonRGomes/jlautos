@@ -23,7 +23,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5001';
 
 interface Vehicle {
   id: string;
@@ -398,7 +398,15 @@ export default function Home() {
               </span>
               <h2 className="text-2xl font-semibold text-zinc-400">Curating Automotive Excellence</h2>
               <div className="flex justify-center">
-                <RefreshCw size={24} className="animate-spin text-accent" />
+                {error ? (
+                  <div className="text-red-500 bg-red-500/10 px-4 py-2 rounded-md font-semibold text-sm">
+                    {error}
+                  </div>
+                ) : loading ? (
+                  <RefreshCw size={24} className="animate-spin text-accent" />
+                ) : (
+                  <div className="text-zinc-500 font-semibold uppercase tracking-wider">No flagship vehicles currently available.</div>
+                )}
               </div>
             </div>
           </div>

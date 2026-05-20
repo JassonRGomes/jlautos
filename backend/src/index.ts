@@ -23,7 +23,15 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 // 1. Mount Security & Request parsing Middlewares
 app.use(
   cors({
-    origin: [FRONTEND_URL, 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+    origin: [
+      FRONTEND_URL,
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:3002',
+    ],
     credentials: true, // Enables HTTP-only cookies session tracking
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
