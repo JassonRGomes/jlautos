@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useThemeAuth } from '../context/ThemeAuthContext';
+import { getImageUrl } from '../utils/image';
 import { Sun, Moon, User as UserIcon, LogOut, Shield, Menu, X } from 'lucide-react';
 
 const Navigation: React.FC = () => {
@@ -19,7 +20,7 @@ const Navigation: React.FC = () => {
             <Link href="/" className="flex items-center">
               {settings?.logoUrl ? (
                 <img
-                  src={settings.logoUrl.startsWith('http') || settings.logoUrl.startsWith('/') ? settings.logoUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001'}${settings.logoUrl}`}
+                  src={getImageUrl(settings.logoUrl)}
                   alt="J&L AUTOS"
                   className="h-10 max-w-[200px] object-contain"
                 />

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
 import { useThemeAuth } from '@/context/ThemeAuthContext';
+import { getImageUrl } from '@/utils/image';
 import {
   Calendar,
   Clock,
@@ -338,7 +339,7 @@ export default function VehicleDetailsPage() {
     }
   }
 
-  const activeImage = vehicle.images[activeImageIdx] || 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=1200';
+  const activeImage = getImageUrl(vehicle.images[activeImageIdx], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=1200');
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">

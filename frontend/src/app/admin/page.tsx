@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useThemeAuth } from '@/context/ThemeAuthContext';
+import { getImageUrl } from '@/utils/image';
 import {
   Car,
   Calendar,
@@ -889,7 +890,7 @@ export default function AdministrativePanel() {
                         <div className="grid grid-cols-5 gap-2 pt-2">
                           {formImages.map((url, idx) => (
                             <div key={idx} className="relative aspect-video rounded overflow-hidden border border-card-border bg-zinc-950">
-                              <img src={url} className="w-full h-full object-cover" />
+                              <img src={getImageUrl(url)} className="w-full h-full object-cover" />
                               <button
                                 type="button"
                                 onClick={() => setFormImages((prev) => prev.filter((_, i) => i !== idx))}
@@ -1008,7 +1009,7 @@ export default function AdministrativePanel() {
 
                   <div className="space-y-3 max-h-[85vh] overflow-y-auto pr-1">
                     {inventory.map((vehicle) => {
-                      const img = vehicle.images[0] || 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=150';
+                      const img = getImageUrl(vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=150');
                       return (
                         <div
                           key={vehicle.id}
@@ -1317,7 +1318,7 @@ export default function AdministrativePanel() {
               {inventory.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {inventory.map((vehicle) => {
-                    const img = vehicle.images[0] || 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200';
+                    const img = getImageUrl(vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200');
                     return (
                       <div
                         key={vehicle.id}
@@ -1586,7 +1587,7 @@ export default function AdministrativePanel() {
                     <div className="h-16 w-44 bg-card border border-card-border rounded flex items-center justify-center overflow-hidden flex-shrink-0 p-2">
                       {formLogoUrl ? (
                         <img
-                          src={formLogoUrl.startsWith('http') || formLogoUrl.startsWith('/') ? formLogoUrl : `${BACKEND_URL}${formLogoUrl}`}
+                          src={getImageUrl(formLogoUrl)}
                           alt="Showroom Logo Preview"
                           className="h-full w-full object-contain"
                         />

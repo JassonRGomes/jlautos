@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useThemeAuth } from '@/context/ThemeAuthContext';
+import { getImageUrl } from '@/utils/image';
 import {
   Heart,
   Bookmark,
@@ -311,7 +312,7 @@ export default function CustomerDashboard() {
                 {favorites.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {favorites.map((vehicle) => {
-                      const img = vehicle.images[0] || 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=400';
+                      const img = getImageUrl(vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=400');
                       return (
                         <div
                           key={vehicle.id}
@@ -450,7 +451,7 @@ export default function CustomerDashboard() {
                 {bookings.length > 0 ? (
                   <div className="relative border-l border-card-border ml-4 space-y-8 py-2">
                     {bookings.map((booking) => {
-                      const img = booking.vehicle.images[0] || 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200';
+                      const img = getImageUrl(booking.vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200');
                       return (
                         <div key={booking.id} className="relative pl-8">
                           
@@ -555,7 +556,7 @@ export default function CustomerDashboard() {
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 bg-zinc-950 border border-card-border rounded overflow-hidden">
                                 <img
-                                  src={offer.vehicle.images[0]}
+                                  src={getImageUrl(offer.vehicle.images[0])}
                                   alt={offer.vehicle.make}
                                   className="w-full h-full object-cover"
                                 />

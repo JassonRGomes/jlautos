@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import axios from 'axios';
+import { getImageUrl } from '@/utils/image';
 import { useThemeAuth } from '../context/ThemeAuthContext';
 import { useRouter } from 'next/navigation';
 import {
@@ -294,7 +295,7 @@ export default function Home() {
                   {/* Backdrop Background Image */}
                   <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent z-10" />
                   <img
-                    src={vehicle.images[0] || 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=1920'}
+                    src={getImageUrl(vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=1920')}
                     alt={`${vehicle.make} ${vehicle.model}`}
                     className="absolute inset-0 h-full w-full object-cover object-center transform scale-105 transition-transform duration-10000"
                   />
@@ -531,7 +532,7 @@ export default function Home() {
         ) : filteredInventory.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredInventory.map((vehicle) => {
-              const firstImage = vehicle.images[0] || 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=600';
+              const firstImage = getImageUrl(vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=600');
               const isFavorited = userFavorites.includes(vehicle.id);
               const likeData = likedVehicles[vehicle.id] || { count: Math.floor(Math.random() * 32) + 12, userLiked: false };
 
