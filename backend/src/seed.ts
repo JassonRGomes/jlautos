@@ -36,7 +36,7 @@ const seed = async () => {
 
     // 3. User Seed accounts
     const salt = await bcrypt.genSalt(10);
-    const adminPass = await bcrypt.hash('AdminPassword2026!', salt);
+    const adminPass = await bcrypt.hash('admin', salt); // Default admin password is 'admin'. Please change after first login
     const customerPass = await bcrypt.hash('CustomerPass2026!', salt);
 
     // Administrative Profile
@@ -61,7 +61,7 @@ const seed = async () => {
       },
     });
     console.log(' Setup core access profiles:');
-    console.log(`   - ADMIN Account: admin@jlautos.com / AdminPassword2026!`);
+    // ADMIN credentials are set; default password: 'admin'. Prompt admin to change after first login.
     console.log(`   - CUSTOMER Account: vip.buyer@gmail.com / CustomerPass2026!`);
 
     // 4. Showroom Premium Car Inventory Seed

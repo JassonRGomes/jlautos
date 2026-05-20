@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useThemeAuth } from '../context/ThemeAuthContext';
+import { getImageUrl } from '@/utils/image';
 import { MapPin, Phone, MessageCircle, Clock, ExternalLink } from 'lucide-react';
 
 const Footer: React.FC = () => {
@@ -24,10 +25,18 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           
           {/* Section 1: Branding and Brief description */}
-          <div className="space-y-4 md:col-span-1">
-            <span className="font-extrabold text-2xl tracking-wider">
-              J&L <span className="text-accent">AUTOS</span>
-            </span>
+          <div className="space-y-4 md:col-span-1 flex flex-col items-center">
+            {settings?.logoUrl ? (
+              <img
+                src={getImageUrl(settings.logoUrl)}
+                alt="J&L AUTOS"
+                className="h-10 w-[100px] object-cover"
+              />
+            ) : (
+              <span className="font-extrabold text-2xl tracking-wider">
+                J&L <span className="text-accent">AUTOS</span>
+              </span>
+            )}
             <p className="text-sm text-text-muted leading-relaxed">
               Replacing the ordinary with curated high-performance precision. Discover a bespoke online showroom crafted exclusively for serious motorcar collectors.
             </p>

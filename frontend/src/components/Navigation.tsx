@@ -22,7 +22,7 @@ const Navigation: React.FC = () => {
                 <img
                   src={getImageUrl(settings.logoUrl)}
                   alt="J&L AUTOS"
-                  className="h-10 max-w-[200px] object-contain"
+                  className="h-10 w-[100px] object-cover bg-transparent"
                 />
               ) : (
                 <span className="font-extrabold text-2xl tracking-wider text-foreground">
