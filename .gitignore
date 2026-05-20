@@ -1,0 +1,40 @@
+# Dependency directories
+node_modules/
+
+# Next.js build outputs
+.next/
+out/
+
+# TypeScript compilation output
+dist/
+build/
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Databases & Docker volumes
+postgres_data/
+
+# IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# SQLite database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+

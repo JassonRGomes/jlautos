@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+:root {
+  /* Sophisticated color palette - Light Mode default */
+  --background: #f8f9fa;
+  --foreground: #0c0c0e;
+  --card-bg: #ffffff;
+  --card-border: #e5e5ea;
+  --accent: #0066ff; /* Electric Blue Accent */
+  --accent-hover: #0052cc;
+  --text-muted: #62626a;
+  --nav-bg: rgba(255, 255, 255, 0.8);
+  --skeleton-bg: #e5e5ea;
+}
+
+.dark-mode {
+  /* Luxury Dark Mode override */
+  --background: #0c0c0e;
+  --foreground: #f3f4f6;
+  --card-bg: #16161a;
+  --card-border: #1f1f24;
+  --accent: #0066ff;
+  --accent-hover: #3385ff;
+  --text-muted: #9ca3af;
+  --nav-bg: rgba(12, 12, 14, 0.85);
+  --skeleton-bg: #1f1f24;
+}
+
+/* Default to dark mode automatically if client system prefers dark */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-mode-forced) {
+    --background: #0c0c0e;
+    --foreground: #f3f4f6;
+    --card-bg: #16161a;
+    --card-border: #1f1f24;
+    --accent: #0066ff;
+    --accent-hover: #3385ff;
+    --text-muted: #9ca3af;
+    --nav-bg: rgba(12, 12, 14, 0.85);
+    --skeleton-bg: #1f1f24;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-text-muted: var(--text-muted);
+  --color-nav: var(--nav-bg);
+  --color-skeleton: var(--skeleton-bg);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Sleek Luxury Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Glassmorphism Backdrop Effects */
+.glassmorphism {
+  background: var(--nav-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--card-border);
+}
+
+/* -------------------------------------------------- */
+/* Luxury Modern UX Transitions (Top-Layer Animations) */
+/* -------------------------------------------------- */
+
+dialog,
+.top-layer-popover {
+  opacity: 0;
+  transform: scale(0.95) translateY(10px);
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-behavior: allow-discrete;
+}
+
+dialog[open],
+.top-layer-popover.open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+}
+
+dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0);
+  transition:
+    display 0.3s allow-discrete,
+    overlay 0.3s allow-discrete,
+    background-color 0.3s ease-out;
+}
+
+dialog[open]::backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+
+  @starting-style {
+    background-color: rgba(0, 0, 0, 0);
+  }
+}
+
+/* Respect user preferences for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  dialog,
+  .top-layer-popover {
+    transform: none !important;
+    transition-duration: 0.1s !important;
+  }
+  dialog[open]::backdrop {
+    transition-duration: 0.1s !important;
+  }
+}
+
+/* Utility Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

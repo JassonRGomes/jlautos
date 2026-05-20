@@ -1,0 +1,129 @@
+// J&L Autos Prisma Schema
+// For Local Development: Uses SQLite (file-based database)
+// For Production (PostgreSQL):
+// 1. Change provider to "postgresql"
+// 2. Change price fields from Float to Decimal (with @db.Decimal(12, 2))
+// 3. Enable enums in Prisma (SQLite uses String constraint models instead)
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User Model with Roles (ADMIN, CUSTOMER)
+model User {
+  id            String        @id @default(uuid())
+  email         String        @unique
+  passwordHash  String
+  name          String
+  phone         String?
+  role          String        @default("CUSTOMER") // "CUSTOMER" or "ADMIN"
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  bookings      Booking[]
+  offers        Offer[]
+  favorites     Favorite[]
+  savedSearches SavedSearch[]
+}
+
+// Vehicle Inventory Model
+model Vehicle {
+  id                      String            @id @default(uuid())
+  make                    String
+  model                   String
+  year                    Int
+  color                   String
+  mileage                 Int
+  price                   Float             // Float in SQLite, convert to Decimal in Postgres
+  transmission            String            // "Automatic" or "Manual"
+  engine                  String            // E.g., "3.0L Inline 6", "V8 Biturbo"
+  fuelType                String            // "Gasoline", "Diesel", "Electric", "Hybrid"
+  bodyStyle               String            // "Sedan", "SUV", "Coupe", "Convertible"
+  seats                   Int
+  doors                   Int
+  description             String
+  status                  String            @default("ON_SALE") // "ON_SALE", "RESERVED", "SOLD"
+  images                  String            // JSON string array E.g., '["url1", "url2"]'
+  isFinanceWarrantyActive Boolean           @default(false)
+  financeData             String?           // JSON string: downpayment, interest rates, terms
+  warrantyData            String?           // JSON string: duration, coverage
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  bookings                Booking[]
+  offers                  Offer[]
+  favorites               Favorite[]
+  newsletterBlasts        NewsletterBlast[]
+}
+
+// Client Booking & Test Drive schedules
+model Booking {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  date      DateTime
+  timeSlot  String   // E.g. "10:00 AM" or "02:00 PM"
+  eventType String   // "VISIT" or "TEST_DRIVE"
+  status    String   @default("PENDING") // "PENDING", "CONFIRMED", "CANCELED"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Client Price Offers Pipeline
+model Offer {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  offerAmount Float
+  status      String   @default("UNDER_REVIEW") // "UNDER_REVIEW", "ACCEPTED", "DECLINED"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Favorites for client wishlist
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, vehicleId])
+}
+
+// Saved search filter matrices
+model SavedSearch {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String?
+  queryParams String   // JSON string of query parameters
+  createdAt   DateTime @default(now())
+}
+
+// Global Dealership Metadata Settings
+model GlobalSettings {
+  id             String   @id @default("global")
+  address        String
+  phone          String
+  whatsappNumber String
+  operatingHours String   // JSON string: Monday-Friday operational slots
+  updatedAt      DateTime @updatedAt
+}
+
+// Newsletter Sent Logs
+model NewsletterBlast {
+  id             String   @id @default(uuid())
+  vehicleId      String
+  vehicle        Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  sentAt         DateTime @default(now())
+  recipientCount Int
+}

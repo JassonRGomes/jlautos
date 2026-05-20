@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: jl-autos-db
+    environment:
+      POSTGRES_USER: jl_admin
+      POSTGRES_PASSWORD: Secure_Password_2026
+      POSTGRES_DB: jl_autos_prod
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:
