@@ -129,12 +129,6 @@ export default function Login() {
 
           </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-xs text-text-muted">
-              Demo Credentials: <strong className="text-foreground">vip.buyer@gmail.com</strong> / <strong className="text-foreground">CustomerPass2026!</strong> or <strong className="text-foreground">admin@jlautos.com</strong> / <strong className="text-foreground">AdminPassword2026!</strong>
-            </span>
-          </div>
-
           <div>
             <button
               type="submit"

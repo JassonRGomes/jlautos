@@ -64,9 +64,18 @@ const Navigation: React.FC = () => {
             {/* Session Action Callouts */}
             {user ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm font-medium text-text-muted">
-                  Hello, <strong className="text-foreground">{user.name.split(' ')[0]}</strong>
-                </span>
+                <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  {user.image ? (
+                    <img src={user.image} alt={user.name} className="w-8 h-8 rounded-full object-cover border border-card-border" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm">
+                      {user.name.charAt(0)}
+                    </div>
+                  )}
+                  <span className="text-sm font-medium text-text-muted">
+                    Hello, <strong className="text-foreground">{user.name.split(' ')[0]}</strong>
+                  </span>
+                </Link>
                 <button
                   onClick={logoutUser}
                   className="flex items-center gap-2 px-4 py-2 border border-foreground/10 hover:border-accent hover:text-accent rounded-md text-sm font-semibold transition-all bg-card"
@@ -143,9 +152,19 @@ const Navigation: React.FC = () => {
           <div className="border-t border-card-border pt-4">
             {user ? (
               <div className="space-y-3">
-                <div className="text-sm font-medium text-text-muted">
-                  Logged in as <strong className="text-foreground">{user.name}</strong>
-                </div>
+                <Link href="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                  {user.image ? (
+                    <img src={user.image} alt={user.name} className="w-8 h-8 rounded-full object-cover border border-card-border" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm">
+                      {user.name.charAt(0)}
+                    </div>
+                  )}
+                  <div className="text-sm font-medium text-text-muted flex flex-col">
+                    <span>Logged in as</span>
+                    <strong className="text-foreground">{user.name}</strong>
+                  </div>
+                </Link>
                 <button
                   onClick={() => {
                     setMobileOpen(false);
