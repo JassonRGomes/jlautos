@@ -128,7 +128,7 @@ async function runIntegrationTests() {
     method: "POST",
     body: JSON.stringify({
       email: "admin@jlautos.com",
-      password: "AdminPassword2026!"
+      password: "admin"
     })
   });
 

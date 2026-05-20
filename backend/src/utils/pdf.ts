@@ -36,8 +36,8 @@ export const generatePDFReport = (
   const darkGrey = '#8E8E93';
 
   // 1. Header Section
-  doc.fillColor(primaryColor).fontSize(20).font('Helvetica-Bold').text('J&L AUTOS', { letterSpacing: 2 });
-  doc.fillColor(textColor).fontSize(10).font('Helvetica').text('PREMIUM LUXURY SHOWROOM PORTFOLIO', { letterSpacing: 1 });
+  doc.fillColor(primaryColor).fontSize(20).font('Helvetica-Bold').text('J&L AUTOS', { characterSpacing: 2 });
+  doc.fillColor(textColor).fontSize(10).font('Helvetica').text('PREMIUM LUXURY SHOWROOM PORTFOLIO', { characterSpacing: 1 });
   doc.moveDown(1);
   
   // Title

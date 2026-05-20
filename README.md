@@ -69,7 +69,7 @@ The platform's database comes pre-seeded with two dedicated profiles for immedia
 ### 💼 1. Corporate Administrator
 * **Role:** Manage showroom fleet, toggle financing features, accept/reject vehicle purchase offers, view booked private showings, and generate administrative reports.
 * **Email:** `admin@jlautos.com`
-* **Password:** `AdminPassword2026!`
+* **Password:** `admin`
 
 ### 🌟 2. VIP Private Buyer (Customer)
 * **Role:** Browse luxury showroom, toggle favorited cars, submit competitive price offers, and reserve private viewings on specific vehicle models.
@@ -82,17 +82,18 @@ The platform's database comes pre-seeded with two dedicated profiles for immedia
 
 To verify that all API components, CRM pipelines, double-booking validation rules, price offer flows, and reporting engines are fully synchronized and working flawlessly, you can run our automated integration suite from the root of the project:
 
+Run the comprehensive multi-step flow test to verify all integration points end-to-end.
+
 ```bash
-# From the root J L AUTOS directory
 node scripts/integration_test.js
 ```
 
-### What this test verifies:
-1. **Customer Authentication:** Validates login, HTTP-only cookie headers, and JWT JWT generation.
-2. **Showroom Inspection:** Queries inventory list and dynamically fetches seeded assets (Porsche, Aston Martin, etc.).
-3. **Double-Booking Safeguards:** Attempts to schedule private viewings, validating that conflict handling (e.g. double-reserving same slot/time) throws a proper API conflict response.
-4. **Acquisition Pipeline:** Submits custom purchasing bids/offers for premium inventory items.
-5. **Administrative Action:** Logins as Admin (`administrator`), pulls pending offers ledger, and approves acquisition requests.
+**What the script automates:**
+1. **Authentication:** Logs in as Customer (`Alexander Stone`) and retrieves authorization tokens.
+2. **Browsing:** Fetches showroom inventory and targets specific models (e.g. Porsche 911 GT3 RS).
+3. **Booking:** Automates scheduling a VIP test drive.
+4. **Acquisition:** Emits an automated price proposal offer against the vehicle reserve.
+5. **Administrative Action:** Logins as Admin (`administrador`), pulls pending offers ledger, and approves acquisition requests.
 6. **Report Generators:** Tests backend document compilers to output valid, structured PDF inventories, CRM spreadsheet leads, and PDF sales charts.
 
 ---
