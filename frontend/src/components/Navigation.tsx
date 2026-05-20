@@ -42,6 +42,11 @@ const Navigation: React.FC = () => {
                 <UserIcon size={16} /> Dashboard
               </Link>
             )}
+            {user && (
+              <Link href="/profile" className="text-sm font-semibold hover:text-accent transition-colors flex items-center gap-2">
+                <UserIcon size={16} /> Profile
+              </Link>
+            )}
             {user?.role === 'ADMIN' && (
               <Link href="/admin" className="text-sm font-semibold text-accent hover:text-accent-hover transition-colors flex items-center gap-2 border border-accent/20 px-3 py-1.5 rounded-full bg-accent/5">
                 <Shield size={16} /> Admin CRM
@@ -137,6 +142,15 @@ const Navigation: React.FC = () => {
               className="block py-2 text-base font-semibold hover:text-accent transition-colors"
             >
               My Dashboard
+            </Link>
+          )}
+          {user && (
+            <Link
+              href="/profile"
+              onClick={() => setMobileOpen(false)}
+              className="block py-2 text-base font-semibold hover:text-accent transition-colors"
+            >
+              Profile Settings
             </Link>
           )}
           {user?.role === 'ADMIN' && (

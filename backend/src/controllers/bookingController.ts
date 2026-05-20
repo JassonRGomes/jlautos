@@ -141,7 +141,7 @@ export const getBookingLedger = async (req: AuthenticatedRequest, res: Response)
       },
     }));
 
-    return res.status(200).json({ count: formatted.length, ledger: formatted });
+    return res.status(200).json({ count: formatted.length, bookings: formatted, ledger: formatted });
   } catch (error: any) {
     return res.status(500).json({ message: 'Error retrieving system bookings ledger.', error: error.message });
   }

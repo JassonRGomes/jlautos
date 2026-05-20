@@ -197,7 +197,7 @@ export default function CustomerDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* SECTION 1: HIGH-END WELCOME BRIEF */}
-        <header className="mb-10 bg-card border border-card-border p-6 sm:p-8 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <header className="mb-10 bg-card border border-card-border p-6 sm:p-8 rounded-xl shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 bg-accent/15 rounded-full flex items-center justify-center border border-accent/20">
               <User size={32} className="text-accent" />
@@ -217,19 +217,37 @@ export default function CustomerDashboard() {
             </div>
           </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-3 gap-6 text-center divide-x divide-card-border/80 md:w-auto w-full border-t md:border-t-0 pt-4 md:pt-0">
-            <div className="px-2">
-              <span className="text-xl sm:text-2xl font-black text-foreground block">{favorites.length}</span>
-              <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mt-0.5">Favorites</span>
+          <div className="flex flex-col sm:flex-row items-center gap-6 lg:w-auto w-full justify-between lg:justify-end">
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-3 gap-6 text-center divide-x divide-card-border/80 w-full sm:w-auto">
+              <div className="px-2">
+                <span className="text-xl sm:text-2xl font-black text-foreground block">{favorites.length}</span>
+                <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mt-0.5">Favorites</span>
+              </div>
+              <div className="px-2 sm:px-6">
+                <span className="text-xl sm:text-2xl font-black text-foreground block">{bookings.length}</span>
+                <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mt-0.5">VIP Bookings</span>
+              </div>
+              <div className="px-2 sm:px-6">
+                <span className="text-xl sm:text-2xl font-black text-foreground block">{offers.length}</span>
+                <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mt-0.5">Offers</span>
+              </div>
             </div>
-            <div className="px-2 sm:px-6">
-              <span className="text-xl sm:text-2xl font-black text-foreground block">{bookings.length}</span>
-              <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mt-0.5">VIP Bookings</span>
-            </div>
-            <div className="px-2 sm:px-6">
-              <span className="text-xl sm:text-2xl font-black text-foreground block">{offers.length}</span>
-              <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mt-0.5">Offers</span>
+
+            {/* Dashboard Quick Actions */}
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-4 sm:pt-0 border-card-border/50">
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 bg-card hover:bg-foreground/5 border border-card-border text-foreground px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wider transition-colors"
+              >
+                <User size={14} /> Profile
+              </Link>
+              <button
+                onClick={fetchDashboardData}
+                className="flex items-center gap-2 bg-card hover:bg-foreground/5 border border-card-border text-foreground px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wider transition-colors"
+              >
+                <RefreshCw size={14} className={loadingData ? 'animate-spin' : ''} /> Sync Dashboard
+              </button>
             </div>
           </div>
         </header>

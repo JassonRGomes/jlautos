@@ -207,8 +207,9 @@ export default function AdministrativePanel() {
 
       // B. Sync Bookings
       const bookRes = await axios.get(`${BACKEND_URL}/api/bookings/ledger`);
-      if (bookRes.data && bookRes.data.bookings) {
-        setBookings(bookRes.data.bookings);
+      const bookingsData = bookRes.data?.bookings || bookRes.data?.ledger;
+      if (bookingsData) {
+        setBookings(bookingsData);
       }
 
       // C. Sync Offers
