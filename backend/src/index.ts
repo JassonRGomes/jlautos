@@ -13,6 +13,7 @@ import vehicleRoutes from './routes/vehicleRoutes';
 import bookingRoutes from './routes/bookingRoutes';
 import offerRoutes from './routes/offerRoutes';
 import settingsRoutes from './routes/settingsRoutes';
+import uploadRoutes from './routes/uploadRoutes';
 
 // Initialize express app
 const app = express();
@@ -53,6 +54,7 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // 4. Wildcard Unmatched Endpoint Handler (404)
 app.use((req: Request, res: Response) => {

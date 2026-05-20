@@ -577,12 +577,20 @@ export default function AdministrativePanel() {
             </div>
           </div>
 
-          <button
-            onClick={syncLedgers}
-            className="flex items-center gap-2 bg-card hover:bg-foreground/5 border border-card-border text-foreground px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wider transition-colors self-start md:self-auto"
-          >
-            <RefreshCw size={14} className={loadingData ? 'animate-spin' : ''} /> Sync Registers
-          </button>
+          <div className="flex items-center gap-3 self-start md:self-auto">
+            <Link
+              href="/profile"
+              className="flex items-center gap-2 bg-card hover:bg-foreground/5 border border-card-border text-foreground px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wider transition-colors"
+            >
+              <User size={14} /> Profile
+            </Link>
+            <button
+              onClick={syncLedgers}
+              className="flex items-center gap-2 bg-card hover:bg-foreground/5 border border-card-border text-foreground px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wider transition-colors"
+            >
+              <RefreshCw size={14} className={loadingData ? 'animate-spin' : ''} /> Sync Registers
+            </button>
+          </div>
         </header>
 
         {/* MESSAGES ALERTS */}

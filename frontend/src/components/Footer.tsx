@@ -38,7 +38,7 @@ const Footer: React.FC = () => {
               </span>
             )}
             <p className="text-sm text-text-muted leading-relaxed">
-              Replacing the ordinary with curated high-performance precision. Discover a bespoke online showroom crafted exclusively for serious motorcar collectors.
+              Redefining automotive excellence through curated performance and uncompromising precision. Enter an exclusive digital showroom designed for discerning collectors and enthusiasts who demand nothing beyond the exceptional
             </p>
           </div>
 
