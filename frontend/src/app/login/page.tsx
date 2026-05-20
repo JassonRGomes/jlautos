@@ -7,7 +7,7 @@ import axios from 'axios';
 import { useThemeAuth } from '@/context/ThemeAuthContext';
 import { Lock, Mail, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5001';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001';
 
 export default function Login() {
   const { loginUser } = useThemeAuth();
