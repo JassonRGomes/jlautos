@@ -1,0 +1,18 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+⚠ Port 3000 is in use by process 4126, using available port 3001 instead.
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.1.228:3001
+✓ Ready in 1454ms
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          4126
+- Dir:          /Users/jassongomes/Documents/Projetos Antigravity/Landing Pages/J L AUTOS/frontend
+- Log:          .next/dev/logs/next-development.log
+
+Run kill 4126 to stop it.
+[?25h

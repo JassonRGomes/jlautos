@@ -229,7 +229,15 @@ export default function ProfilePage() {
               </div>
             )}
             
-            <div className="pt-4 flex justify-end">
+            <div className="pt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                disabled={loading}
+                className="flex items-center gap-2 px-6 py-2.5 bg-foreground/10 text-foreground rounded-lg text-sm font-semibold hover:bg-foreground/20 transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 disabled={loading}
