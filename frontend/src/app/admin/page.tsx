@@ -190,6 +190,7 @@ export default function AdministrativePanel() {
     try {
       setLoadingData(true);
       setErrorMsg('');
+      setSuccessMsg('');
 
       // A. Sync Inventory
       const invRes = await axios.get(`${BACKEND_URL}/api/vehicles`);
@@ -224,6 +225,8 @@ export default function AdministrativePanel() {
         setCustomers(custRes.data.registry);
       }
 
+      setSuccessMsg('All registers synchronized successfully.');
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err: any) {
       console.error('Failed to sync administrative datastores:', err);
       setErrorMsg('Failed to sync server metadata. Check backend connection.');
