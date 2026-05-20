@@ -198,7 +198,7 @@ export const sendCustomerBookingConfirmation = async (data: BookingMailData) => 
               <h4 style="margin: 0 0 10px 0; color: #0066ff; text-transform: uppercase; font-size: 13px; letter-spacing: 1px;">Dealership Location</h4>
               <p style="margin: 0 0 8px 0; color: #ffffff; font-weight: 500; font-size: 14px;">J&L Autos Luxury Flagship Showroom</p>
               <p style="margin: 0 0 12px 0; color: #a1a1a5; font-size: 13px; line-height: 1.4;">100 Premium Way, Suite 400<br>Beverly Hills, CA 90210</p>
-              <p style="margin: 0; color: #8e8e93; font-size: 12px;">Need directions or running late? Call us directly: <strong>+1 (310) 555-0199</strong></p>
+              <p style="margin: 0; color: #8e8e93; font-size: 12px;">Need directions or running late? Call us directly: <strong>+1 (214) 608-0670</strong></p>
             </div>
 
             <p style="font-size: 13px; color: #8e8e93; line-height: 1.5; text-align: center; font-style: italic;">
@@ -215,7 +215,7 @@ export const sendCustomerBookingConfirmation = async (data: BookingMailData) => 
             </p>
             <div class="social-links">
               <a href="${FRONTEND_URL}">Showroom</a>
-              <a href="https://wa.me/13105550199">WhatsApp Support</a>
+              <a href="https://wa.me/12146080670">WhatsApp Support</a>
             </div>
           </div>
         </div>

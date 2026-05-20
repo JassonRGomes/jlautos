@@ -6,7 +6,7 @@ import { useThemeAuth } from '../context/ThemeAuthContext';
 import { Sun, Moon, User as UserIcon, LogOut, Shield, Menu, X } from 'lucide-react';
 
 const Navigation: React.FC = () => {
-  const { isDarkMode, toggleTheme, user, logoutUser } = useThemeAuth();
+  const { isDarkMode, toggleTheme, user, logoutUser, settings } = useThemeAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -17,9 +17,17 @@ const Navigation: React.FC = () => {
           {/* Logo Branding */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <span className="font-extrabold text-2xl tracking-wider text-foreground">
-                J&L <span className="text-accent">AUTOS</span>
-              </span>
+              {settings?.logoUrl ? (
+                <img
+                  src={settings.logoUrl.startsWith('http') || settings.logoUrl.startsWith('/') ? settings.logoUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001'}${settings.logoUrl}`}
+                  alt="J&L AUTOS"
+                  className="h-10 max-w-[200px] object-contain"
+                />
+              ) : (
+                <span className="font-extrabold text-2xl tracking-wider text-foreground">
+                  J&L <span className="text-accent">AUTOS</span>
+                </span>
+              )}
             </Link>
           </div>
 

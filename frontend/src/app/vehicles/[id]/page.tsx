@@ -61,7 +61,7 @@ interface BookingSlot {
 export default function VehicleDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { user } = useThemeAuth();
+  const { user, settings } = useThemeAuth();
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -745,7 +745,7 @@ export default function VehicleDetailsPage() {
 
             <div className="pt-4 border-t border-card-border/60 text-center">
               <span className="text-[10px] text-text-muted uppercase tracking-widest font-semibold">
-                J&L Autos Concierge Desk: (310) 555-0199
+                J&L Autos Concierge Desk: {settings?.phone || '+1 (214) 608-0670'}
               </span>
             </div>
 

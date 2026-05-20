@@ -25,6 +25,7 @@ interface DealershipSettings {
     saturday: string;
     sunday: string;
   };
+  logoUrl?: string | null;
 }
 
 interface ThemeAuthContextType {
@@ -36,6 +37,7 @@ interface ThemeAuthContextType {
   logoutUser: () => Promise<void>;
   settings: DealershipSettings | null;
   loadProfile: () => Promise<void>;
+  loadSettings: () => Promise<void>;
 }
 
 const ThemeAuthContext = createContext<ThemeAuthContextType | undefined>(undefined);
@@ -137,6 +139,7 @@ export const ThemeAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         logoutUser,
         settings,
         loadProfile,
+        loadSettings,
       }}
     >
       {children}

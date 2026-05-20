@@ -4,6 +4,8 @@ import "./globals.css";
 import { ThemeAuthProvider } from "@/context/ThemeAuthContext";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import FloatingSmsButton from "@/components/FloatingSmsButton";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +41,9 @@ export default function RootLayout({
           <Navigation />
           <main className="flex-grow">{children}</main>
           <Footer />
+          <FloatingSmsButton />
         </ThemeAuthProvider>
+
       </body>
     </html>
   );

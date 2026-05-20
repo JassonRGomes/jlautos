@@ -16,8 +16,9 @@ export const getSettings = async (req: Request, res: Response) => {
         data: {
           id: 'global',
           address: '100 Premium Way, Suite 400, Beverly Hills, CA 90210',
-          phone: '+1 (310) 555-0199',
-          whatsappNumber: '13105550199',
+          phone: '+1 (214) 608-0670',
+          whatsappNumber: '12146080670',
+          logoUrl: null,
           operatingHours: JSON.stringify({
             weekdays: '9:00 AM - 6:00 PM',
             saturday: '10:00 AM - 5:00 PM',
@@ -40,7 +41,7 @@ export const getSettings = async (req: Request, res: Response) => {
 
 // 2. Edit Global Corporate Settings (CMS Admin Control)
 export const updateSettings = async (req: AuthenticatedRequest, res: Response) => {
-  const { address, phone, whatsappNumber, operatingHours } = req.body;
+  const { address, phone, whatsappNumber, operatingHours, logoUrl } = req.body;
 
   try {
     const hoursStr = operatingHours
@@ -54,14 +55,16 @@ export const updateSettings = async (req: AuthenticatedRequest, res: Response) =
       create: {
         id: 'global',
         address: address || '100 Premium Way, Beverly Hills, CA',
-        phone: phone || '+1 (310) 555-0199',
-        whatsappNumber: whatsappNumber || '13105550199',
+        phone: phone || '+1 (214) 608-0670',
+        whatsappNumber: whatsappNumber || '12146080670',
+        logoUrl: logoUrl || null,
         operatingHours: hoursStr || '{}',
       },
       update: {
         address,
         phone,
         whatsappNumber,
+        logoUrl: logoUrl !== undefined ? logoUrl : undefined,
         ...(hoursStr && { operatingHours: hoursStr }),
       },
     });

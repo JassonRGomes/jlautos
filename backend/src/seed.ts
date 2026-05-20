@@ -22,8 +22,9 @@ const seed = async () => {
       data: {
         id: 'global',
         address: '100 Premium Way, Suite 400, Beverly Hills, CA 90210',
-        phone: '+1 (310) 555-0199',
-        whatsappNumber: '13105550199',
+        phone: '+1 (214) 608-0670',
+        whatsappNumber: '12146080670',
+        logoUrl: null,
         operatingHours: JSON.stringify({
           weekdays: '9:00 AM - 6:00 PM',
           saturday: '10:00 AM - 5:00 PM',

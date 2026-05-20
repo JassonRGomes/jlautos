@@ -29,6 +29,7 @@ import {
   Download,
   AlertTriangle,
   Users,
+  Settings,
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001';
@@ -92,7 +93,7 @@ interface Customer {
   };
 }
 
-type AdminTab = 'inventory' | 'bookings' | 'offers' | 'newsletter' | 'reports';
+type AdminTab = 'inventory' | 'bookings' | 'offers' | 'newsletter' | 'reports' | 'settings';
 
 export default function AdministrativePanel() {
   const router = useRouter();
@@ -142,6 +143,32 @@ export default function AdministrativePanel() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [formImages, setFormImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Global Settings CMS Form states
+  const { settings, loadSettings } = useThemeAuth();
+  const [formAddress, setFormAddress] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formWhatsappNumber, setFormWhatsappNumber] = useState('');
+  const [formLogoUrl, setFormLogoUrl] = useState<string | null>(null);
+  const [formWeekdays, setFormWeekdays] = useState('');
+  const [formSaturday, setFormSaturday] = useState('');
+  const [formSunday, setFormSunday] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (settings) {
+      setFormAddress(settings.address || '');
+      setFormPhone(settings.phone || '');
+      setFormWhatsappNumber(settings.whatsappNumber || '');
+      setFormLogoUrl(settings.logoUrl || null);
+      if (settings.operatingHours) {
+        setFormWeekdays(settings.operatingHours.weekdays || '');
+        setFormSaturday(settings.operatingHours.saturday || '');
+        setFormSunday(settings.operatingHours.sunday || '');
+      }
+    }
+  }, [settings]);
 
   // 1. Authorization Lock
   useEffect(() => {
@@ -231,6 +258,67 @@ export default function AdministrativePanel() {
       setErrorMsg(err.response?.data?.message || 'Error processing Sharp image compressor.');
     } finally {
       setUploadingImages(false);
+      setTimeout(() => setSuccessMsg(''), 3000);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoadingData(true);
+      setErrorMsg('');
+      setSuccessMsg('');
+
+      const res = await axios.put(`${BACKEND_URL}/api/settings`, {
+        address: formAddress,
+        phone: formPhone,
+        whatsappNumber: formWhatsappNumber,
+        logoUrl: formLogoUrl,
+        operatingHours: {
+          weekdays: formWeekdays,
+          saturday: formSaturday,
+          sunday: formSunday,
+        },
+      });
+
+      if (res.data) {
+        setSuccessMsg('Dealership global settings updated successfully.');
+        await loadSettings(); // Reload global settings context
+      }
+    } catch (err: any) {
+      console.error('Failed to save settings:', err);
+      setErrorMsg(err.response?.data?.message || 'Error updating global dealership settings.');
+    } finally {
+      setLoadingData(false);
+      setTimeout(() => setSuccessMsg(''), 3000);
+    }
+  };
+
+  const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const formData = new FormData();
+    formData.append('images', files[0]);
+
+    try {
+      setUploadingLogo(true);
+      setSuccessMsg('');
+      setErrorMsg('');
+
+      const res = await axios.post(`${BACKEND_URL}/api/vehicles/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (res.data && res.data.urls && res.data.urls.length > 0) {
+        setFormLogoUrl(res.data.urls[0]);
+        setSuccessMsg('Logo uploaded successfully.');
+      }
+    } catch (err: any) {
+      console.error('Logo upload error:', err);
+      setErrorMsg(err.response?.data?.message || 'Error processing logo image compressor.');
+    } finally {
+      setUploadingLogo(false);
       setTimeout(() => setSuccessMsg(''), 3000);
     }
   };
@@ -556,6 +644,15 @@ export default function AdministrativePanel() {
             }`}
           >
             <TrendingUp size={15} /> Analytical Ledgers
+          </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`py-4 px-1 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
+              activeTab === 'settings' ? 'border-accent text-accent' : 'border-transparent text-text-muted hover:text-foreground'
+            }`}
+          >
+            <Settings size={15} /> Global Settings
           </button>
         </div>
 
@@ -1390,6 +1487,171 @@ export default function AdministrativePanel() {
                 )}
               </div>
 
+            </div>
+          )}
+
+          {/* TAB 6: GLOBAL DEALERSHIP SETTINGS CMS */}
+          {activeTab === 'settings' && (
+            <div className="bg-card border border-card-border p-6 rounded-xl space-y-6 max-w-4xl shadow-sm text-foreground">
+              <div className="border-b border-card-border pb-3">
+                <h3 className="font-extrabold text-sm uppercase text-foreground">Global Dealership Configurations</h3>
+                <p className="text-xs text-text-muted mt-1 font-light leading-relaxed font-sans">
+                  Configure corporate contact directories, location addresses, official WhatsApp profiles, operating schedules, and upload corporate logos to display dynamically on the site header.
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveSettings} className="space-y-6">
+                
+                {/* Section A: Contact Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Concierge Phone Number</label>
+                    <input
+                      type="text"
+                      placeholder="+1 (214) 608-0670"
+                      value={formPhone}
+                      onChange={(e) => setFormPhone(e.target.value)}
+                      className="bg-card border border-card-border text-foreground px-3.5 py-2.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-accent font-medium"
+                    />
+                  </div>
+
+                  <div className="flex flex-col space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">WhatsApp Directory Number (Digits Only)</label>
+                    <input
+                      type="text"
+                      placeholder="12146080670"
+                      value={formWhatsappNumber}
+                      onChange={(e) => setFormWhatsappNumber(e.target.value)}
+                      className="bg-card border border-card-border text-foreground px-3.5 py-2.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-accent font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Section B: Showroom Location */}
+                <div className="flex flex-col space-y-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Dealership Flagship Address</label>
+                  <input
+                    type="text"
+                    placeholder="100 Premium Way, Suite 400, Beverly Hills, CA 90210"
+                    value={formAddress}
+                    onChange={(e) => setFormAddress(e.target.value)}
+                    className="bg-card border border-card-border text-foreground px-3.5 py-2.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-accent font-medium"
+                  />
+                </div>
+
+                {/* Section C: Operating Schedules */}
+                <div className="border-t border-card-border/50 pt-4">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-accent mb-3">Operating Hours</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex flex-col space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-text-muted">Weekdays (Mon - Fri)</label>
+                      <input
+                        type="text"
+                        placeholder="9:00 AM - 6:00 PM"
+                        value={formWeekdays}
+                        onChange={(e) => setFormWeekdays(e.target.value)}
+                        className="bg-card border border-card-border text-foreground px-3.5 py-2.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-accent font-medium"
+                      />
+                    </div>
+
+                    <div className="flex flex-col space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-text-muted">Saturday</label>
+                      <input
+                        type="text"
+                        placeholder="10:00 AM - 5:00 PM"
+                        value={formSaturday}
+                        onChange={(e) => setFormSaturday(e.target.value)}
+                        className="bg-card border border-card-border text-foreground px-3.5 py-2.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-accent font-medium"
+                      />
+                    </div>
+
+                    <div className="flex flex-col space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-text-muted">Sunday</label>
+                      <input
+                        type="text"
+                        placeholder="Closed"
+                        value={formSunday}
+                        onChange={(e) => setFormSunday(e.target.value)}
+                        className="bg-card border border-card-border text-foreground px-3.5 py-2.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-accent font-medium"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section D: Logo Uploader */}
+                <div className="border-t border-card-border/50 pt-4 space-y-3">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-accent">Dealership Logo Brand</h4>
+                  
+                  <div className="flex flex-col sm:flex-row items-center gap-6 bg-zinc-950 p-4 rounded-lg border border-card-border">
+                    <div className="h-16 w-44 bg-card border border-card-border rounded flex items-center justify-center overflow-hidden flex-shrink-0 p-2">
+                      {formLogoUrl ? (
+                        <img
+                          src={formLogoUrl.startsWith('http') || formLogoUrl.startsWith('/') ? formLogoUrl : `${BACKEND_URL}${formLogoUrl}`}
+                          alt="Showroom Logo Preview"
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">No Brand Logo</span>
+                      )}
+                    </div>
+
+                    <div className="flex-grow space-y-2 w-full sm:w-auto">
+                      <p className="text-xs text-text-muted leading-relaxed font-light font-sans">
+                        Upload an image (transparent PNG or SVG recommended) to replace the text header `J&L AUTOS` dynamically with your custom branding logo.
+                      </p>
+                      
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          ref={logoInputRef}
+                          onChange={handleUploadLogo}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => logoInputRef.current?.click()}
+                          disabled={uploadingLogo}
+                          className="bg-accent/15 border border-accent/20 hover:bg-accent/25 text-accent px-4 py-2 rounded text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                        >
+                          {uploadingLogo ? (
+                            <>
+                              <RefreshCw size={12} className="animate-spin" />
+                              <span>Compressing logo...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={12} />
+                              <span>Upload Corporate Logo</span>
+                            </>
+                          )}
+                        </button>
+
+                        {formLogoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setFormLogoUrl(null)}
+                            className="text-xs text-red-500 hover:text-red-600 font-bold uppercase tracking-wider px-2 py-2"
+                          >
+                            Remove Logo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form Submit Row */}
+                <div className="border-t border-card-border/50 pt-6 flex justify-end">
+                  <button
+                    type="submit"
+                    className="bg-accent hover:bg-accent-hover text-white px-8 py-3 rounded-md text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-accent/20"
+                  >
+                    Save Showroom Settings
+                  </button>
+                </div>
+
+              </form>
             </div>
           )}
 

@@ -116,6 +116,7 @@ model GlobalSettings {
   phone          String
   whatsappNumber String
   operatingHours String   // JSON string: Monday-Friday operational slots
+  logoUrl        String?  // Logo image URL path
   updatedAt      DateTime @updatedAt
 }
 
