@@ -1,4 +1,12 @@
 {
+  "name": "jlautos-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "cd backend && npm install",
+    "build": "cd backend && npm run build",
+    "start": "cd backend && npm start"
+  },
   "dependencies": {
     "axios-cookiejar-support": "^7.0.0",
     "tough-cookie": "^6.0.1"
