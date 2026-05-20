@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getProfile, logout } from '../controllers/authController';
+import { register, login, getProfile, logout, updateProfile } from '../controllers/authController';
 import { authenticateJWT } from '../middleware/auth';
 
 const router = Router();
@@ -10,6 +10,7 @@ router.post('/login', login);
 
 // Authenticated session profile
 router.get('/profile', authenticateJWT, getProfile);
+router.put('/profile', authenticateJWT, updateProfile);
 
 // Terminate active JWT session
 router.post('/logout', logout);

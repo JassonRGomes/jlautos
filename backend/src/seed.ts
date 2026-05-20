@@ -44,7 +44,7 @@ const seed = async () => {
       data: {
         email: 'admin@jlautos.com',
         passwordHash: adminPass,
-        name: 'James Lord',
+        name: 'administrator',
         phone: '+1 (310) 555-0101',
         role: 'ADMIN',
       },

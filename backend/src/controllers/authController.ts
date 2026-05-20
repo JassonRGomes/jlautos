@@ -125,6 +125,39 @@ export const getProfile = async (req: AuthenticatedRequest, res: Response) => {
   return res.status(200).json({ user: req.user });
 };
 
+// 5. Update Profile
+export const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthenticated.' });
+  }
+  const { name, phone, image, currentPassword, newPassword } = req.body;
+  const userId = req.user.id;
+  try {
+    const updates: any = {};
+    if (name) updates.name = name;
+    if (phone) updates.phone = phone;
+    if (image) updates.image = image;
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password required to set new password.' });
+      }
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) return res.status(404).json({ message: 'User not found.' });
+      const match = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!match) return res.status(401).json({ message: 'Current password incorrect.' });
+      const salt = await bcrypt.genSalt(10);
+      updates.passwordHash = await bcrypt.hash(newPassword, salt);
+    }
+    const updatedUser = await prisma.user.update({ where: { id: userId }, data: updates });
+    return res.status(200).json({
+      message: 'Profile updated successfully.',
+      user: { id: updatedUser.id, email: updatedUser.email, name: updatedUser.name, phone: updatedUser.phone, image: updatedUser.image, role: updatedUser.role },
+    });
+  } catch (error: any) {
+    return res.status(500).json({ message: 'Error updating profile.', error: error.message });
+  }
+};
+
 // 4. Logout User / Revoke Session Cookies
 export const logout = async (req: Request, res: Response) => {
   res.clearCookie('token', {

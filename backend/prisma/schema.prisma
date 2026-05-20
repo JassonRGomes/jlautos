@@ -20,7 +20,8 @@ model User {
   email         String        @unique
   passwordHash  String
   name          String
-  phone         String?
+  phone         String?,
+  image         String?, // optional profile picture URL
   role          String        @default("CUSTOMER") // "CUSTOMER" or "ADMIN"
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

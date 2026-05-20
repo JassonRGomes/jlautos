@@ -122,7 +122,7 @@ async function runIntegrationTests() {
   console.log(`   Offer ID: ${offerData.offer.id} - Amount: $${offerData.offer.offerAmount} (Status: ${offerData.offer.status})`);
 
   // 4. LOG OUT CUSTOMER & LOG IN ADMIN
-  console.log("\n[Step 4] Authenticating administrator (James Lord)...");
+  console.log("\n[Step 4] Authenticating administrator (administrator)...");
   authToken = ""; // Reset auth
   const adminLoginRes = await apiFetch("/auth/login", {
     method: "POST",

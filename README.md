@@ -92,7 +92,7 @@ node scripts/integration_test.js
 2. **Showroom Inspection:** Queries inventory list and dynamically fetches seeded assets (Porsche, Aston Martin, etc.).
 3. **Double-Booking Safeguards:** Attempts to schedule private viewings, validating that conflict handling (e.g. double-reserving same slot/time) throws a proper API conflict response.
 4. **Acquisition Pipeline:** Submits custom purchasing bids/offers for premium inventory items.
-5. **Administrative Action:** Logins as Admin (`James Lord`), pulls pending offers ledger, and approves acquisition requests.
+5. **Administrative Action:** Logins as Admin (`administrator`), pulls pending offers ledger, and approves acquisition requests.
 6. **Report Generators:** Tests backend document compilers to output valid, structured PDF inventories, CRM spreadsheet leads, and PDF sales charts.
 
 ---
