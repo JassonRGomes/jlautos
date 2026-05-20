@@ -178,6 +178,10 @@ export const exportReport = async (req: AuthenticatedRequest, res: Response) => 
   }
 
   try {
+    // Fetch global settings to get logoUrl
+    const settings = await prisma.globalSettings.findUnique({ where: { id: 'global' } });
+    const logoUrl = settings?.logoUrl || null;
+
     if (type === 'inventory') {
       const vehicles = await prisma.vehicle.findMany({ orderBy: { make: 'asc' } });
       const valuation = vehicles.reduce((sum, v) => sum + v.price, 0);
@@ -198,7 +202,8 @@ export const exportReport = async (req: AuthenticatedRequest, res: Response) => 
       if (format === 'pdf') {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="inventory_valuation_report.pdf"');
-        generatePDFReport(res, title, headers, rows, summaryText);
+        const colWidths = [70, 110, 50, 75, 100, 90];
+        generatePDFReport(res, title, headers, rows, summaryText, logoUrl, colWidths);
       } else {
         await generateExcelReport(res, 'Showroom Inventory', headers, rows, 'inventory_valuation_report.xlsx');
       }
@@ -226,7 +231,8 @@ export const exportReport = async (req: AuthenticatedRequest, res: Response) => 
       if (format === 'pdf') {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="active_customer_leads.pdf"');
-        generatePDFReport(res, title, headers, rows, summaryText);
+        const colWidths = [80, 120, 100, 70, 75, 50];
+        generatePDFReport(res, title, headers, rows, summaryText, logoUrl, colWidths);
       } else {
         await generateExcelReport(res, 'Active Customer Leads', headers, rows, 'active_customer_leads.xlsx');
       }
@@ -255,7 +261,8 @@ export const exportReport = async (req: AuthenticatedRequest, res: Response) => 
       if (format === 'pdf') {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="sales_performance_report.pdf"');
-        generatePDFReport(res, title, headers, rows, summaryText);
+        const colWidths = [95, 130, 95, 95, 80];
+        generatePDFReport(res, title, headers, rows, summaryText, logoUrl, colWidths);
       } else {
         await generateExcelReport(res, 'Sales Performance', headers, rows, 'sales_performance_report.xlsx');
       }
