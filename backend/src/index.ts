@@ -3,6 +3,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
+import prisma from './config/db';
 
 // Load Environment variables
 dotenv.config();
@@ -85,12 +87,36 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// 6. Bind Server Port listener
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(` J&L AUTOS RESTFUL API SERVER ACTIVE `);
-  console.log(`   - Port Binding: http://localhost:${PORT}`);
-  console.log(`   - Static Assets: http://localhost:${PORT}/uploads`);
-  console.log(`   - Allowed Client Origin: ${FRONTEND_URL}`);
-  console.log(`====================================================`);
-});
+// 6. Bind Server Port listener and assure Admin
+const createDefaultAdminAndStartServer = async () => {
+  try {
+    const adminEmail = 'admin@jlautos.com';
+    const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+    if (!existingAdmin) {
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('admin', salt);
+      await prisma.user.create({
+        data: {
+          email: adminEmail,
+          passwordHash,
+          name: 'System Administrator',
+          role: 'ADMIN',
+        },
+      });
+      console.log('Default administrator account created (admin@jlautos.com)');
+    }
+  } catch (error) {
+    console.error('Failed to ensure default admin account:', error);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(` J&L AUTOS RESTFUL API SERVER ACTIVE `);
+    console.log(`   - Port Binding: http://localhost:${PORT}`);
+    console.log(`   - Static Assets: http://localhost:${PORT}/uploads`);
+    console.log(`   - Allowed Client Origin: ${FRONTEND_URL}`);
+    console.log(`====================================================`);
+  });
+};
+
+createDefaultAdminAndStartServer();
