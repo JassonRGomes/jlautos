@@ -124,7 +124,16 @@ export const sendAgencyBookingAlert = async (data: BookingMailData) => {
     `,
   };
 
-  return transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('[Email Trigger Service] Booking agency alert dispatched successfully via SMTP.');
+    return info;
+  } catch (err: any) {
+    console.error('[SMTP Alert Trigger Failure]:', err.message);
+    console.log('[Mock Email Dispatch] to:', AGENCY_EMAIL);
+    console.log('[Mock Email Dispatch] subject:', mailOptions.subject);
+    return { mockSent: true, error: err.message };
+  }
 };
 
 // 2. Dispatch High-End Invoice-Style Confirmation to the Customer
@@ -224,7 +233,16 @@ export const sendCustomerBookingConfirmation = async (data: BookingMailData) => 
     `,
   };
 
-  return transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('[Email Trigger Service] Customer booking confirmation dispatched successfully via SMTP.');
+    return info;
+  } catch (err: any) {
+    console.error('[SMTP Alert Trigger Failure]:', err.message);
+    console.log('[Mock Email Dispatch] to:', data.customerEmail);
+    console.log('[Mock Email Dispatch] subject:', mailOptions.subject);
+    return { mockSent: true, error: err.message };
+  }
 };
 
 // 3. Dispatch General Admin Newsletter Blast containing vehicle details
@@ -313,5 +331,14 @@ export const blastVehicleNewsletter = async (data: NewsletterMailData) => {
     `,
   };
 
-  return transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('[Email Trigger Service] Newsletter blast dispatched successfully via SMTP.');
+    return info;
+  } catch (err: any) {
+    console.error('[SMTP Newsletter Blast Failure]:', err.message);
+    console.log('[Mock Email Dispatch] bcc recipients:', data.recipients.join(', '));
+    console.log('[Mock Email Dispatch] subject:', mailOptions.subject);
+    return { mockSent: true, error: err.message };
+  }
 };
