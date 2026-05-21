@@ -612,6 +612,22 @@ export default function Home() {
                         </span>
                       </div>
 
+                      {/* PRIMARY ACTIONS */}
+                      <div className="flex gap-2 pt-4">
+                        <Link
+                          href={`/vehicles/${vehicle.id}`}
+                          className="flex-1 bg-foreground text-background text-center py-2.5 rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-accent transition-colors"
+                        >
+                          View Details
+                        </Link>
+                        <Link
+                          href={`/vehicles/${vehicle.id}?tab=offer`}
+                          className="flex-1 border border-card-border text-center py-2.5 rounded-md text-[10px] font-bold uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
+                        >
+                          Quick Offer
+                        </Link>
+                      </div>
+
                       {/* SOCIAL ACTIONS BAR */}
                       <div className="flex justify-between items-center pt-2 border-t border-card-border/50">
                         {/* 1. Bookmark Favorite */}

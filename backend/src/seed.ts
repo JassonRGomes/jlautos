@@ -200,6 +200,39 @@ const seed = async () => {
     }
 
     console.log(` Showroom vehicle models seeded to database.`);
+
+    // 5. Bookings and Test Drives Mock Data
+    const porsche = await prisma.vehicle.findFirst({ where: { make: 'Porsche' }});
+    const am = await prisma.vehicle.findFirst({ where: { make: 'Aston Martin' }});
+
+    if (porsche && am && customer.id && admin.id) {
+      await prisma.booking.create({
+        data: {
+          userId: customer.id,
+          vehicleId: porsche.id,
+          date: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // Next week
+          timeSlot: '10:00 AM',
+          eventType: 'VISIT',
+          status: 'PENDING',
+          notes: 'VIP customer requested a private viewing of the GT3 RS.',
+        }
+      });
+
+      await prisma.testDrive.create({
+        data: {
+          userId: customer.id,
+          vehicleId: am.id,
+          salesRepId: admin.id,
+          testDriveDate: new Date(new Date().getTime() + 10 * 24 * 60 * 60 * 1000), 
+          testDriveTime: '02:00 PM',
+          location: 'Dealership',
+          status: 'SCHEDULED',
+          notes: 'Customer wants to test drive the DBS on the highway.',
+        }
+      });
+      console.log(' Mock Bookings and Test Drives seeded.');
+    }
+
     console.log('Luxury database seeding completed successfully!');
   } catch (err: any) {
     console.error('Seeding critical failure:', err.message);
