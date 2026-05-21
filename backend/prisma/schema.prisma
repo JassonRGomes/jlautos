@@ -1,13 +1,15 @@
-// J&L Autos Prisma Schema
-// For Local Development: Uses SQLite (file-based database)
-// For Production (PostgreSQL):
-// 1. Change provider to "postgresql"
-// 2. Change price fields from Float to Decimal (with @db.Decimal(12, 2))
-// 3. Enable enums in Prisma (SQLite uses String constraint models instead)
+// J&L Autos — Prisma Schema
+// Database: SQLite for development, PostgreSQL for production
+//
+// To switch to PostgreSQL:
+//   1. Set provider = "postgresql" in datasource
+//   2. Set DATABASE_URL to your PostgreSQL connection string
+//   3. Change Float fields to Decimal @db.Decimal(12,2)
+//   4. Run: npx prisma migrate dev
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -15,24 +17,29 @@ generator client {
   binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
-// User Model with Roles (ADMIN, CUSTOMER)
+// ─── User Model ───────────────────────────────────────────────────────────────
+// Roles: ADMIN | SALES_REP | CUSTOMER
 model User {
-  id            String        @id @default(uuid())
-  email         String        @unique
+  id            String      @id @default(uuid())
+  email         String      @unique
   passwordHash  String
   name          String
   phone         String?
-  image         String?  // optional profile picture URL
-  role          String        @default("CUSTOMER") // "CUSTOMER" or "ADMIN"
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  image         String?
+  role          String      @default("CUSTOMER") // "CUSTOMER" | "SALES_REP" | "ADMIN"
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
   bookings      Booking[]
+  testDrives    TestDrive[] @relation("CustomerTestDrives")
+  salesTestDrives TestDrive[] @relation("SalesRepTestDrives")
   offers        Offer[]
   favorites     Favorite[]
   savedSearches SavedSearch[]
+  activityLogs  ActivityLog[]
 }
 
-// Vehicle Inventory Model
+// ─── Vehicle Inventory Model ──────────────────────────────────────────────────
 model Vehicle {
   id                      String            @id @default(uuid())
   make                    String
@@ -40,28 +47,31 @@ model Vehicle {
   year                    Int
   color                   String
   mileage                 Int
-  price                   Float             // Float in SQLite, convert to Decimal in Postgres
-  transmission            String            // "Automatic" or "Manual"
-  engine                  String            // E.g., "3.0L Inline 6", "V8 Biturbo"
-  fuelType                String            // "Gasoline", "Diesel", "Electric", "Hybrid"
-  bodyStyle               String            // "Sedan", "SUV", "Coupe", "Convertible"
+  price                   Float
+  transmission            String            // "Automatic" | "Manual"
+  engine                  String
+  fuelType                String            // "Gasoline" | "Diesel" | "Electric" | "Hybrid"
+  bodyStyle               String            // "Sedan" | "SUV" | "Coupe" | "Convertible"
   seats                   Int
   doors                   Int
+  vin                     String?           @unique
   description             String
-  status                  String            @default("ON_SALE") // "ON_SALE", "RESERVED", "SOLD"
-  images                  String            // JSON string array E.g., '["url1", "url2"]'
+  status                  String            @default("ON_SALE") // "ON_SALE" | "RESERVED" | "SOLD"
+  images                  String            // JSON string array
   isFinanceWarrantyActive Boolean           @default(false)
-  financeData             String?           // JSON string: downpayment, interest rates, terms
-  warrantyData            String?           // JSON string: duration, coverage
+  financeData             String?           // JSON: downpayment, rates, terms
+  warrantyData            String?           // JSON: duration, coverage
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt
+
   bookings                Booking[]
+  testDrives              TestDrive[]
   offers                  Offer[]
   favorites               Favorite[]
   newsletterBlasts        NewsletterBlast[]
 }
 
-// Client Booking & Test Drive schedules
+// ─── Booking Model (Showroom Visit + Test Drive appointments) ─────────────────
 model Booking {
   id        String   @id @default(uuid())
   userId    String
@@ -69,14 +79,46 @@ model Booking {
   vehicleId String
   vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   date      DateTime
-  timeSlot  String   // E.g. "10:00 AM" or "02:00 PM"
-  eventType String   // "VISIT" or "TEST_DRIVE"
-  status    String   @default("PENDING") // "PENDING", "CONFIRMED", "CANCELED"
+  timeSlot  String   // "10:00 AM" | "02:00 PM"
+  eventType String   // "VISIT" | "TEST_DRIVE"
+  status    String   @default("PENDING") // "PENDING" | "CONFIRMED" | "CANCELED" | "COMPLETED"
+  notes     String?  // Optional customer/admin notes
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Client Price Offers Pipeline
+// ─── Test Drive Model (Dedicated, with Sales Rep) ────────────────────────────
+model TestDrive {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation("CustomerTestDrives", fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId       String
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  salesRepId      String?
+  salesRep        User?    @relation("SalesRepTestDrives", fields: [salesRepId], references: [id], onDelete: SetNull)
+  testDriveDate   DateTime
+  testDriveTime   String   // "10:00 AM" | "03:00 PM"
+  location        String   @default("Dealership") // "Dealership" | "Customer Address" | custom
+  status          String   @default("SCHEDULED")  // "SCHEDULED" | "APPROVED" | "COMPLETED" | "CANCELED" | "NO_SHOW"
+  notes           String?
+  adminNotes      String?  // Internal staff-only notes
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── Activity Log ─────────────────────────────────────────────────────────────
+model ActivityLog {
+  id          String   @id @default(uuid())
+  action      String   // "BOOKING_CREATED" | "BOOKING_CONFIRMED" | "TEST_DRIVE_SCHEDULED" | etc.
+  entityType  String   // "Booking" | "TestDrive" | "Vehicle" | "User"
+  entityId    String
+  performedBy String   // User ID
+  user        User     @relation(fields: [performedBy], references: [id], onDelete: Cascade)
+  metadata    String?  // JSON: additional context
+  createdAt   DateTime @default(now())
+}
+
+// ─── Client Price Offers Pipeline ────────────────────────────────────────────
 model Offer {
   id          String   @id @default(uuid())
   userId      String
@@ -84,12 +126,12 @@ model Offer {
   vehicleId   String
   vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   offerAmount Float
-  status      String   @default("UNDER_REVIEW") // "UNDER_REVIEW", "ACCEPTED", "DECLINED"
+  status      String   @default("UNDER_REVIEW") // "UNDER_REVIEW" | "ACCEPTED" | "DECLINED"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
-// Favorites for client wishlist
+// ─── Favorites / Wishlist ─────────────────────────────────────────────────────
 model Favorite {
   id        String   @id @default(uuid())
   userId    String
@@ -101,7 +143,7 @@ model Favorite {
   @@unique([userId, vehicleId])
 }
 
-// Saved search filter matrices
+// ─── Saved Search Filter Matrices ────────────────────────────────────────────
 model SavedSearch {
   id          String   @id @default(uuid())
   userId      String
@@ -111,18 +153,18 @@ model SavedSearch {
   createdAt   DateTime @default(now())
 }
 
-// Global Dealership Metadata Settings
+// ─── Global Dealership Metadata ───────────────────────────────────────────────
 model GlobalSettings {
   id             String   @id @default("global")
   address        String
   phone          String
   whatsappNumber String
-  operatingHours String   // JSON string: Monday-Friday operational slots
-  logoUrl        String?  // Logo image URL path
+  operatingHours String   // JSON string
+  logoUrl        String?
   updatedAt      DateTime @updatedAt
 }
 
-// Newsletter Sent Logs
+// ─── Newsletter Blast Logs ────────────────────────────────────────────────────
 model NewsletterBlast {
   id             String   @id @default(uuid())
   vehicleId      String

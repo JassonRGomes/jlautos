@@ -1,25 +1,25 @@
 import { Router } from 'express';
 import {
-  createBooking,
-  getMyBookings,
-  getBookingLedger,
-  getBookingById,
-  updateBookingStatus,
-  deleteBooking,
-} from '../controllers/bookingController';
+  createTestDrive,
+  getMyTestDrives,
+  getTestDriveLedger,
+  getTestDriveById,
+  updateTestDriveStatus,
+  deleteTestDrive,
+} from '../controllers/testDriveController';
 import { authenticateJWT, requireAdmin } from '../middleware/auth';
 import { bookingLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
 // ── Authenticated Customer Routes ─────────────────────────────────────────────
-router.post('/', authenticateJWT, bookingLimiter, createBooking);
-router.get('/my', authenticateJWT, getMyBookings);
+router.post('/', authenticateJWT, bookingLimiter, createTestDrive);
+router.get('/my', authenticateJWT, getMyTestDrives);
 
 // ── Admin CRM Routes ──────────────────────────────────────────────────────────
-router.get('/ledger', authenticateJWT, requireAdmin, getBookingLedger);
-router.get('/:id', authenticateJWT, requireAdmin, getBookingById);
-router.patch('/:id/status', authenticateJWT, requireAdmin, updateBookingStatus);
-router.delete('/:id', authenticateJWT, requireAdmin, deleteBooking);
+router.get('/ledger', authenticateJWT, requireAdmin, getTestDriveLedger);
+router.get('/:id', authenticateJWT, requireAdmin, getTestDriveById);
+router.patch('/:id/status', authenticateJWT, requireAdmin, updateTestDriveStatus);
+router.delete('/:id', authenticateJWT, requireAdmin, deleteTestDrive);
 
 export default router;

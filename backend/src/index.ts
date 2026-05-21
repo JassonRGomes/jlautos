@@ -16,6 +16,7 @@ import bookingRoutes from './routes/bookingRoutes';
 import offerRoutes from './routes/offerRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import uploadRoutes from './routes/uploadRoutes';
+import testDriveRoutes from './routes/testDriveRoutes';
 
 // Initialize express app
 const app = express();
@@ -69,6 +70,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/test-drives', testDriveRoutes);
 
 // 4. Fallback for Next.js routing (Serve index.html for non-API routes if not found)
 app.use((req: Request, res: Response, next: NextFunction) => {

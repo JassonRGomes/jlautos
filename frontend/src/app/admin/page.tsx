@@ -106,6 +106,11 @@ export default function AdministrativePanel() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Booking action states
+  const [bookingActionLoading, setBookingActionLoading] = useState<Record<string, boolean>>({});
+  const [cancelModal, setCancelModal] = useState<{ open: boolean; bookingId: string; customerName: string } | null>(null);
+  const [smsToast, setSmsToast] = useState<{ visible: boolean; sent: boolean; message: string } | null>(null);
+
   // Inventory Database states
   const [inventory, setInventory] = useState<Vehicle[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -482,19 +487,43 @@ export default function AdministrativePanel() {
     setFormWarrantyScope('');
   };
 
-  // 5. Update Booking Event Resolution
+  // Helper: show SMS toast for 4 seconds
+  const showSmsToast = (sent: boolean, message: string) => {
+    setSmsToast({ visible: true, sent, message });
+    setTimeout(() => setSmsToast(null), 4000);
+  };
+
+  // 5. Update Booking Event Resolution (with SMS feedback)
   const handleUpdateBookingStatus = async (id: string, newStatus: 'CONFIRMED' | 'CANCELED') => {
+    // If cancelling, show modal first
+    if (newStatus === 'CANCELED') {
+      const b = bookings.find((bk) => bk.id === id);
+      setCancelModal({ open: true, bookingId: id, customerName: b?.user?.name || 'this customer' });
+      return;
+    }
+    await _doUpdateBookingStatus(id, newStatus);
+  };
+
+  const _doUpdateBookingStatus = async (id: string, newStatus: 'CONFIRMED' | 'CANCELED') => {
+    setCancelModal(null);
+    setBookingActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
-      setLoadingData(true);
-      await axios.patch(`${BACKEND_URL}/api/bookings/${id}/status`, { status: newStatus });
-      setSuccessMsg(`Booking status resolved as: ${newStatus}`);
+      const res = await axios.patch(`${BACKEND_URL}/api/bookings/${id}/status`, { status: newStatus });
+      const label = newStatus === 'CONFIRMED' ? 'Confirmed ✅' : 'Cancelled ❌';
+      setSuccessMsg(`Booking ${label} — SMS notification dispatched to customer.`);
+
+      // Show SMS toast
+      const smsSent: boolean = res.data?.smsSent ?? false;
+      const smsLog: string   = res.data?.smsLog   ?? 'No SMS info returned.';
+      showSmsToast(smsSent, smsSent ? `SMS sent to customer.` : smsLog);
+
       syncLedgers();
     } catch (err: any) {
       console.error('Booking resolve error:', err);
-      setErrorMsg('Failed to update booking status.');
+      setErrorMsg(err.response?.data?.message || 'Failed to update booking status.');
     } finally {
-      setLoadingData(false);
-      setTimeout(() => setSuccessMsg(''), 3000);
+      setBookingActionLoading((prev) => ({ ...prev, [id]: false }));
+      setTimeout(() => setSuccessMsg(''), 4000);
     }
   };
 
@@ -1152,23 +1181,48 @@ export default function AdministrativePanel() {
                           <td className="py-3.5 px-4 text-right">
                             {booking.status === 'PENDING' ? (
                               <div className="flex justify-end gap-1.5">
+                                {/* CONFIRM button */}
                                 <button
+                                  id={`confirm-booking-${booking.id}`}
                                   onClick={() => handleUpdateBookingStatus(booking.id, 'CONFIRMED')}
-                                  className="bg-emerald-500 hover:bg-emerald-600 text-white p-1.5 rounded transition-all"
-                                  title="Approve booking confirmation"
+                                  disabled={!!bookingActionLoading[booking.id]}
+                                  className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded transition-all flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"
+                                  title="Confirm booking & SMS customer"
                                 >
-                                  <Check size={12} />
+                                  {bookingActionLoading[booking.id] ? (
+                                    <RefreshCw size={11} className="animate-spin" />
+                                  ) : (
+                                    <Check size={11} />
+                                  )}
+                                  Confirm
                                 </button>
+                                {/* CANCEL button */}
                                 <button
+                                  id={`cancel-booking-${booking.id}`}
                                   onClick={() => handleUpdateBookingStatus(booking.id, 'CANCELED')}
-                                  className="bg-red-600 hover:bg-red-700 text-white p-1.5 rounded transition-all"
-                                  title="Cancel booking slot"
+                                  disabled={!!bookingActionLoading[booking.id]}
+                                  className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded transition-all flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"
+                                  title="Cancel booking & SMS customer"
                                 >
-                                  <X size={12} />
+                                  {bookingActionLoading[booking.id] ? (
+                                    <RefreshCw size={11} className="animate-spin" />
+                                  ) : (
+                                    <X size={11} />
+                                  )}
+                                  Cancel
                                 </button>
                               </div>
                             ) : (
-                              <span className="text-[10px] text-text-muted font-bold uppercase">Resolved</span>
+                              <div className="text-right">
+                                <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded ${
+                                  booking.status === 'CONFIRMED'
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                }`}>
+                                  {booking.status === 'CONFIRMED' ? '✅ Confirmed' : '❌ Cancelled'}
+                                </span>
+                                <div className="text-[9px] text-text-muted mt-1">SMS sent to client</div>
+                              </div>
                             )}
                           </td>
 
