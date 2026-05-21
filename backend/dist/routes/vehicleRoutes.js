@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const multer_1 = __importDefault(require("multer"));
 const vehicleController_1 = require("../controllers/vehicleController");
-const auth_1 = require("../middleware/auth");
+const auth_1 = require("../middlewares/auth");
 const router = (0, express_1.Router)();
 // Configure Multer memory storage for direct Sharp processing
 const storage = multer_1.default.memoryStorage();

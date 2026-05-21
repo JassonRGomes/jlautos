@@ -14,7 +14,7 @@ import {
   getSavedSearches,
   deleteSavedSearch,
 } from '../controllers/vehicleController';
-import { authenticateJWT, requireAdmin } from '../middleware/auth';
+import { authenticateJWT, requireAdmin } from '../middlewares/auth';
 
 const router = Router();
 

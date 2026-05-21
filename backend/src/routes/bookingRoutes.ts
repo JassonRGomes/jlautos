@@ -1,25 +1,22 @@
 import { Router } from 'express';
 import {
-  createBooking,
-  getMyBookings,
-  getBookingLedger,
+  getBookings,
   getBookingById,
-  updateBookingStatus,
+  createBooking,
+  updateBooking,
   deleteBooking,
 } from '../controllers/bookingController';
-import { authenticateJWT, requireAdmin } from '../middleware/auth';
-import { bookingLimiter } from '../middleware/rateLimiter';
+import { authenticateJWT, requireAdmin } from '../middlewares/auth';
 
 const router = Router();
 
-// ── Authenticated Customer Routes ─────────────────────────────────────────────
-router.post('/', authenticateJWT, bookingLimiter, createBooking);
-router.get('/my', authenticateJWT, getMyBookings);
+// All booking routes require authentication
+router.use(authenticateJWT);
 
-// ── Admin CRM Routes ──────────────────────────────────────────────────────────
-router.get('/ledger', authenticateJWT, requireAdmin, getBookingLedger);
-router.get('/:id', authenticateJWT, requireAdmin, getBookingById);
-router.patch('/:id/status', authenticateJWT, requireAdmin, updateBookingStatus);
-router.delete('/:id', authenticateJWT, requireAdmin, deleteBooking);
+router.get('/', getBookings);
+router.get('/:id', getBookingById);
+router.post('/', createBooking);
+router.put('/:id', updateBooking);
+router.delete('/:id', requireAdmin, deleteBooking);
 
 export default router;

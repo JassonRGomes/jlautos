@@ -3,7 +3,7 @@ import prisma from '../config/db';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middlewares/auth';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const REVALIDATION_TOKEN = process.env.REVALIDATION_TOKEN || 'jl_autos_reval_token_secure_2026';

@@ -1,305 +1,193 @@
-import { Response } from 'express';
-import { AuthenticatedRequest } from '../middleware/auth';
-import { testDriveRepository } from '../repositories/testDriveRepository';
-import { createTestDriveSchema, updateTestDriveStatusSchema } from '../validators/testDriveValidator';
-import { sendNewBookingAlertToAgency, sendBookingStatusSMSToCustomer } from '../services/smsService';
-import { sendAgencyBookingAlert, sendCustomerBookingConfirmation } from '../services/emailService';
+import { Request, Response } from 'express';
 import prisma from '../config/db';
-import logger from '../utils/logger';
+import { AuthenticatedRequest } from '../middlewares/auth';
 
-// ─── Helper: parse vehicle images safely ─────────────────────────────────────
-const parseImages = (images: string): string[] => {
-  try { return JSON.parse(images); } catch { return []; }
-};
+// GET /test-drives - List test drives
+export const getTestDrives = async (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
+  const { status, vehicleId, page = '1', limit = '20' } = req.query;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 1. Customer Schedules a Test Drive
-// ─────────────────────────────────────────────────────────────────────────────
-export const createTestDrive = async (req: AuthenticatedRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ message: 'Authentication required to schedule a test drive.' });
-  }
+  const where: any = {};
+  if (user.role === 'CUSTOMER') where.userId = user.id;
+  if (status) where.status = status;
+  if (vehicleId) where.vehicleId = vehicleId;
 
-  // Zod validation
-  const parsed = createTestDriveSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({
-      message: 'Validation failed.',
-      errors: parsed.error.flatten().fieldErrors,
-    });
-  }
-
-  const { vehicleId, testDriveDate, testDriveTime, location, salesRepId, notes } = parsed.data;
+  const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+  const take = parseInt(limit as string);
 
   try {
-    // Verify vehicle exists and is available
-    const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
-    if (!vehicle) {
-      return res.status(404).json({ message: 'Selected vehicle was not found.' });
-    }
-    if (vehicle.status === 'SOLD') {
-      return res.status(409).json({ message: 'This vehicle has already been sold and is unavailable for test drives.' });
-    }
-
-    // Check for scheduling conflict
-    const conflict = await testDriveRepository.findConflict(
-      vehicleId,
-      new Date(testDriveDate),
-      testDriveTime
-    );
-    if (conflict) {
-      return res.status(409).json({
-        message: 'This vehicle already has a test drive scheduled at the selected date and time.',
-      });
-    }
-
-    // Create test drive record
-    const testDrive = await testDriveRepository.create({
-      userId: req.user.id,
-      vehicleId,
-      salesRepId: salesRepId ?? null,
-      testDriveDate: new Date(testDriveDate),
-      testDriveTime,
-      location: location ?? 'Dealership',
-      notes,
-    });
-
-    // Fetch full user for notifications
-    const fullUser = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: { name: true, email: true, phone: true },
-    });
-
-    const customerName  = fullUser?.name  || req.user.name;
-    const customerEmail = fullUser?.email || req.user.email;
-    const vehicleLabel  = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
-    const formattedDate = new Date(testDriveDate).toLocaleDateString('en-US', {
-      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
-    });
-
-    // ── Email notifications (fire-and-forget) ─────────────────────────────────
-    Promise.all([
-      sendAgencyBookingAlert({
-        customerName,
-        customerEmail,
-        customerPhone: fullUser?.phone ?? undefined,
-        vehicleDetails: {
-          id: vehicle.id, make: vehicle.make, model: vehicle.model,
-          year: vehicle.year, price: vehicle.price,
-          transmission: vehicle.transmission, color: vehicle.color,
+    const [testDrives, total] = await Promise.all([
+      prisma.testDrive.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, name: true, email: true, phone: true } },
+          vehicle: { select: { id: true, make: true, model: true, year: true, color: true, images: true } },
+          salesRep: { select: { id: true, name: true, email: true } },
         },
-        bookingDate: new Date(testDriveDate),
-        timeSlot: testDriveTime,
-        eventType: 'TEST_DRIVE',
       }),
-      sendCustomerBookingConfirmation({
-        customerName,
-        customerEmail,
-        customerPhone: fullUser?.phone ?? undefined,
-        vehicleDetails: {
-          id: vehicle.id, make: vehicle.make, model: vehicle.model,
-          year: vehicle.year, price: vehicle.price,
-          transmission: vehicle.transmission, color: vehicle.color,
-        },
-        bookingDate: new Date(testDriveDate),
-        timeSlot: testDriveTime,
-        eventType: 'TEST_DRIVE',
-      }),
-    ]).catch((e) => logger.error('[TestDrive] Email dispatch failed', { error: e.message }));
+      prisma.testDrive.count({ where }),
+    ]);
 
-    // ── SMS to agency (fire-and-forget) ───────────────────────────────────────
-    sendNewBookingAlertToAgency({
-      bookingId: testDrive.id,
-      customerName,
-      vehicle: vehicleLabel,
-      date: formattedDate,
-      timeSlot: testDriveTime,
-      eventType: 'TEST_DRIVE',
-    })
-      .then((ok) => logger.info(`[SMS] Agency test drive alert: ${ok ? 'dispatched' : 'not delivered'}`))
-      .catch((e) => logger.error('[SMS] Agency alert error', { error: e.message }));
-
-    // ── Activity Log ──────────────────────────────────────────────────────────
-    prisma.activityLog.create({
-      data: {
-        action: 'TEST_DRIVE_SCHEDULED',
-        entityType: 'TestDrive',
-        entityId: testDrive.id,
-        performedBy: req.user.id,
-        metadata: JSON.stringify({ vehicle: vehicleLabel, date: formattedDate, time: testDriveTime }),
-      },
-    }).catch((e) => logger.error('[ActivityLog] Failed to write log', { error: e.message }));
-
-    logger.info(`[TestDrive] New test drive scheduled by ${customerName} for ${vehicleLabel}`);
-
-    return res.status(201).json({
-      message: 'Test drive scheduled successfully. Confirmation notifications dispatched.',
-      testDrive: {
-        ...testDrive,
-        vehicle: { ...testDrive.vehicle, images: parseImages(testDrive.vehicle.images) },
-      },
-      smsDispatched: true,
+    return res.json({
+      success: true,
+      data: testDrives,
+      pagination: { total, page: parseInt(page as string), limit: take, pages: Math.ceil(total / take) },
     });
   } catch (error: any) {
-    logger.error('[TestDrive] Create error', { error: error.message });
-    return res.status(500).json({ message: 'Failed to schedule test drive.', error: error.message });
+    return res.status(500).json({ success: false, message: 'Failed to fetch test drives.', error: error.message });
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. Customer: Get My Test Drives
-// ─────────────────────────────────────────────────────────────────────────────
-export const getMyTestDrives = async (req: AuthenticatedRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ message: 'Authentication required.' });
-  }
-  try {
-    const testDrives = await testDriveRepository.findManyByUser(req.user.id);
-    const formatted = testDrives.map((td) => ({
-      ...td,
-      vehicle: { ...td.vehicle, images: parseImages(td.vehicle.images) },
-    }));
-    return res.status(200).json({ count: formatted.length, testDrives: formatted });
-  } catch (error: any) {
-    logger.error('[TestDrive] getMyTestDrives error', { error: error.message });
-    return res.status(500).json({ message: 'Failed to retrieve your test drives.' });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 3. Admin: Get All Test Drives (CRM Ledger)
-// ─────────────────────────────────────────────────────────────────────────────
-export const getTestDriveLedger = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const testDrives = await testDriveRepository.findAll();
-    const formatted = testDrives.map((td) => ({
-      ...td,
-      vehicle: { ...td.vehicle, images: parseImages(td.vehicle.images) },
-    }));
-    return res.status(200).json({ count: formatted.length, testDrives: formatted, ledger: formatted });
-  } catch (error: any) {
-    logger.error('[TestDrive] getTestDriveLedger error', { error: error.message });
-    return res.status(500).json({ message: 'Failed to retrieve test drive ledger.' });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 4. Admin: Get Single Test Drive by ID
-// ─────────────────────────────────────────────────────────────────────────────
+// GET /test-drives/:id
 export const getTestDriveById = async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
+  const user = req.user!;
   try {
-    const td = await testDriveRepository.findById(id);
-    if (!td) return res.status(404).json({ message: 'Test drive not found.' });
-    return res.status(200).json({
-      testDrive: { ...td, vehicle: { ...td.vehicle, images: parseImages(td.vehicle.images) } },
-    });
-  } catch (error: any) {
-    logger.error('[TestDrive] getById error', { error: error.message });
-    return res.status(500).json({ message: 'Failed to retrieve test drive.' });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. Admin: Update Test Drive Status (+ SMS customer)
-// ─────────────────────────────────────────────────────────────────────────────
-export const updateTestDriveStatus = async (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
-
-  const parsed = updateTestDriveStatusSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({
-      message: 'Validation failed.',
-      errors: parsed.error.flatten().fieldErrors,
-    });
-  }
-
-  const { status, adminNotes, salesRepId } = parsed.data;
-
-  try {
-    const existing = await testDriveRepository.findById(id);
-    if (!existing) return res.status(404).json({ message: 'Test drive not found.' });
-
-    if (existing.status === status) {
-      return res.status(409).json({ message: `Test drive is already in ${status} state.` });
-    }
-
-    const updated = await testDriveRepository.updateStatus(id, {
-      status,
-      adminNotes,
-      salesRepId: salesRepId ?? undefined,
-    });
-
-    let smsSent = false;
-    let smsLog  = 'SMS not triggered.';
-
-    // ── SMS to customer on APPROVED or CANCELED ───────────────────────────────
-    if (status === 'APPROVED' || status === 'CANCELED') {
-      const customerPhone = updated.user?.phone ?? null;
-      if (customerPhone) {
-        const smsMapped = status === 'APPROVED' ? 'CONFIRMED' : 'CANCELLED';
-        try {
-          smsSent = await sendBookingStatusSMSToCustomer({
-            bookingId: id,
-            customerPhone,
-            status: smsMapped,
-          });
-          smsLog = smsSent
-            ? `SMS dispatched to customer: ${customerPhone}`
-            : `SMS delivery failed for: ${customerPhone}`;
-        } catch (smsErr: any) {
-          smsLog = `SMS error: ${smsErr.message}`;
-          logger.error('[SMS] Test drive status SMS failed', { error: smsErr.message });
-        }
-      } else {
-        smsLog = 'Customer has no phone number — SMS skipped.';
-      }
-    }
-
-    // ── Activity Log ──────────────────────────────────────────────────────────
-    if (req.user) {
-      prisma.activityLog.create({
-        data: {
-          action: `TEST_DRIVE_${status}`,
-          entityType: 'TestDrive',
-          entityId: id,
-          performedBy: req.user.id,
-          metadata: JSON.stringify({ previousStatus: existing.status, newStatus: status, smsSent }),
-        },
-      }).catch((e) => logger.error('[ActivityLog] Failed', { error: e.message }));
-    }
-
-    logger.info(`[TestDrive] Status updated: ${id} → ${status} | SMS: ${smsSent}`);
-
-    return res.status(200).json({
-      message: `Test drive updated to ${status} successfully.`,
-      smsSent,
-      smsLog,
-      testDrive: {
-        ...updated,
-        vehicle: { ...updated.vehicle, images: parseImages(updated.vehicle.images) },
+    const testDrive = await prisma.testDrive.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        vehicle: { select: { id: true, make: true, model: true, year: true, color: true, price: true, images: true } },
+        salesRep: { select: { id: true, name: true, email: true } },
       },
     });
+
+    if (!testDrive) return res.status(404).json({ success: false, message: 'Test drive not found.' });
+    if (user.role === 'CUSTOMER' && testDrive.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Access denied.' });
+    }
+
+    return res.json({ success: true, data: testDrive });
   } catch (error: any) {
-    logger.error('[TestDrive] updateStatus error', { error: error.message });
-    return res.status(500).json({ message: 'Failed to update test drive status.', error: error.message });
+    return res.status(500).json({ success: false, message: 'Failed to fetch test drive.', error: error.message });
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 6. Admin: Delete Test Drive
-// ─────────────────────────────────────────────────────────────────────────────
+// POST /test-drives - Schedule test drive
+export const createTestDrive = async (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
+  const { vehicleId, testDriveDate, testDriveTime, location, salesRepresentativeId, notes } = req.body;
+
+  if (!vehicleId || !testDriveDate || !testDriveTime) {
+    return res.status(400).json({ success: false, message: 'vehicleId, testDriveDate, and testDriveTime are required.' });
+  }
+
+  try {
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
+    if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found.' });
+    if (vehicle.status === 'SOLD') return res.status(409).json({ success: false, message: 'Vehicle is already sold.' });
+
+    // Check slot conflict
+    const conflict = await prisma.testDrive.findFirst({
+      where: {
+        vehicleId,
+        testDriveDate: new Date(testDriveDate),
+        testDriveTime,
+        status: { in: ['scheduled', 'approved'] },
+      },
+    });
+    if (conflict) {
+      return res.status(409).json({ success: false, message: 'This vehicle already has a test drive scheduled at this date and time.' });
+    }
+
+    // Customer cannot have multiple active test drives for same vehicle
+    const existingActive = await prisma.testDrive.findFirst({
+      where: { userId: user.id, vehicleId, status: { in: ['scheduled', 'approved'] } },
+    });
+    if (existingActive) {
+      return res.status(409).json({ success: false, message: 'You already have an active test drive for this vehicle.' });
+    }
+
+    const testDrive = await prisma.testDrive.create({
+      data: {
+        userId: user.id,
+        vehicleId,
+        testDriveDate: new Date(testDriveDate),
+        testDriveTime,
+        location: location || 'Dealership',
+        salesRepresentativeId: salesRepresentativeId || null,
+        notes: notes || null,
+        status: 'scheduled',
+      },
+      include: {
+        vehicle: { select: { make: true, model: true, year: true } },
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        action: 'CREATE_TEST_DRIVE',
+        entityType: 'TestDrive',
+        entityId: testDrive.id,
+        performedBy: user.id,
+      },
+    });
+
+    return res.status(201).json({ success: true, message: 'Test drive scheduled successfully.', data: testDrive });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to schedule test drive.', error: error.message });
+  }
+};
+
+// PUT /test-drives/:id - Update (admin: any; customer: cancel only)
+export const updateTestDrive = async (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const user = req.user!;
+  const { status, testDriveDate, testDriveTime, location, salesRepresentativeId, notes } = req.body;
+
+  try {
+    const testDrive = await prisma.testDrive.findUnique({ where: { id } });
+    if (!testDrive) return res.status(404).json({ success: false, message: 'Test drive not found.' });
+
+    if (user.role === 'CUSTOMER') {
+      if (testDrive.userId !== user.id) return res.status(403).json({ success: false, message: 'Access denied.' });
+      if (status && status !== 'cancelled') return res.status(403).json({ success: false, message: 'Customers can only cancel test drives.' });
+    }
+
+    const updates: any = {};
+    if (status) updates.status = status;
+    if (testDriveDate) updates.testDriveDate = new Date(testDriveDate);
+    if (testDriveTime) updates.testDriveTime = testDriveTime;
+    if (location) updates.location = location;
+    if (salesRepresentativeId !== undefined) updates.salesRepresentativeId = salesRepresentativeId;
+    if (notes !== undefined) updates.notes = notes;
+
+    const updated = await prisma.testDrive.update({ where: { id }, data: updates });
+
+    await prisma.activityLog.create({
+      data: {
+        action: `UPDATE_TEST_DRIVE_${(status || 'EDITED').toUpperCase()}`,
+        entityType: 'TestDrive',
+        entityId: id,
+        performedBy: user.id,
+      },
+    });
+
+    return res.json({ success: true, message: 'Test drive updated.', data: updated });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to update test drive.', error: error.message });
+  }
+};
+
+// DELETE /test-drives/:id (admin only)
 export const deleteTestDrive = async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
+  const user = req.user!;
   try {
-    const existing = await testDriveRepository.findById(id);
-    if (!existing) return res.status(404).json({ message: 'Test drive not found.' });
+    const testDrive = await prisma.testDrive.findUnique({ where: { id } });
+    if (!testDrive) return res.status(404).json({ success: false, message: 'Test drive not found.' });
 
-    await testDriveRepository.delete(id);
-    logger.info(`[TestDrive] Deleted: ${id}`);
-    return res.status(200).json({ message: 'Test drive removed from system.' });
+    await prisma.testDrive.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: { action: 'DELETE_TEST_DRIVE', entityType: 'TestDrive', entityId: id, performedBy: user.id },
+    });
+
+    return res.json({ success: true, message: 'Test drive deleted.' });
   } catch (error: any) {
-    logger.error('[TestDrive] delete error', { error: error.message });
-    return res.status(500).json({ message: 'Failed to delete test drive.', error: error.message });
+    return res.status(500).json({ success: false, message: 'Failed to delete test drive.', error: error.message });
   }
 };

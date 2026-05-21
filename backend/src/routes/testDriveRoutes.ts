@@ -1,25 +1,22 @@
 import { Router } from 'express';
 import {
-  createTestDrive,
-  getMyTestDrives,
-  getTestDriveLedger,
+  getTestDrives,
   getTestDriveById,
-  updateTestDriveStatus,
+  createTestDrive,
+  updateTestDrive,
   deleteTestDrive,
 } from '../controllers/testDriveController';
-import { authenticateJWT, requireAdmin } from '../middleware/auth';
-import { bookingLimiter } from '../middleware/rateLimiter';
+import { authenticateJWT, requireAdmin } from '../middlewares/auth';
 
 const router = Router();
 
-// ── Authenticated Customer Routes ─────────────────────────────────────────────
-router.post('/', authenticateJWT, bookingLimiter, createTestDrive);
-router.get('/my', authenticateJWT, getMyTestDrives);
+// All test drive routes require authentication
+router.use(authenticateJWT);
 
-// ── Admin CRM Routes ──────────────────────────────────────────────────────────
-router.get('/ledger', authenticateJWT, requireAdmin, getTestDriveLedger);
-router.get('/:id', authenticateJWT, requireAdmin, getTestDriveById);
-router.patch('/:id/status', authenticateJWT, requireAdmin, updateTestDriveStatus);
-router.delete('/:id', authenticateJWT, requireAdmin, deleteTestDrive);
+router.get('/', getTestDrives);
+router.get('/:id', getTestDriveById);
+router.post('/', createTestDrive);
+router.put('/:id', updateTestDrive);
+router.delete('/:id', requireAdmin, deleteTestDrive);
 
 export default router;

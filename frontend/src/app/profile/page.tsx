@@ -68,7 +68,7 @@ export default function ProfilePage() {
         formData.append('avatar', imageFile);
         
         try {
-          const uploadRes = await axios.post(`${BACKEND_URL}/api/upload/avatar`, formData, {
+          const uploadRes = await axios.post(`${BACKEND_URL}/api/uploads/avatar`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
           imageUrl = uploadRes.data.url;

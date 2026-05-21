@@ -3,176 +3,207 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateBookingStatus = exports.getBookingLedger = exports.getMyBookings = exports.createBooking = void 0;
+exports.deleteBooking = exports.updateBooking = exports.createBooking = exports.getBookingById = exports.getBookings = void 0;
 const db_1 = __importDefault(require("../config/db"));
-const emailService_1 = require("../services/emailService");
-// 1. Authenticated User Schedules Visit / Test Drive
-const createBooking = async (req, res) => {
-    const { vehicleId, date, timeSlot, eventType } = req.body;
-    if (!req.user) {
-        return res.status(401).json({ message: 'Authentication required to schedule bookings.' });
-    }
-    if (!vehicleId || !date || !timeSlot || !eventType) {
-        return res.status(400).json({ message: 'Vehicle, Date, Time Slot, and Event Type are required fields.' });
-    }
+// GET /bookings - List bookings (admin: all, user: own)
+const getBookings = async (req, res) => {
+    const user = req.user;
+    const { status, vehicleId, page = '1', limit = '20' } = req.query;
+    const where = {};
+    if (user.role === 'CUSTOMER')
+        where.userId = user.id;
+    if (status)
+        where.status = status;
+    if (vehicleId)
+        where.vehicleId = vehicleId;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
     try {
-        // Verify vehicle exists
-        const vehicle = await db_1.default.vehicle.findUnique({ where: { id: vehicleId } });
-        if (!vehicle) {
-            return res.status(404).json({ message: 'Selected vehicle was not found.' });
-        }
-        // Check if the slot is already booked for this specific vehicle
-        const existing = await db_1.default.booking.findFirst({
-            where: {
-                vehicleId,
-                date: new Date(date),
-                timeSlot,
-                status: { in: ['PENDING', 'CONFIRMED'] },
-            },
-        });
-        if (existing) {
-            return res.status(409).json({ message: 'This specific time slot is already reserved for this vehicle.' });
-        }
-        // Create booking in database
-        const booking = await db_1.default.booking.create({
-            data: {
-                userId: req.user.id,
-                vehicleId,
-                date: new Date(date),
-                timeSlot,
-                eventType, // "VISIT" | "TEST_DRIVE"
-                status: 'PENDING',
-            },
-        });
-        // Extract detailed user phone/info
-        const fullUser = await db_1.default.user.findUnique({
-            where: { id: req.user.id },
-            select: { name: true, email: true, phone: true }
-        });
-        // 2. Trigger Automated Dual-Mailing Transaction
-        try {
-            const mailPayload = {
-                customerName: fullUser?.name || req.user.name,
-                customerEmail: fullUser?.email || req.user.email,
-                customerPhone: fullUser?.phone || undefined,
-                vehicleDetails: {
-                    id: vehicle.id,
-                    make: vehicle.make,
-                    model: vehicle.model,
-                    year: vehicle.year,
-                    price: vehicle.price,
-                    transmission: vehicle.transmission,
-                    color: vehicle.color,
+        const [bookings, total] = await Promise.all([
+            db_1.default.booking.findMany({
+                where,
+                skip,
+                take,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    user: { select: { id: true, name: true, email: true, phone: true } },
+                    vehicle: { select: { id: true, make: true, model: true, year: true, color: true, images: true } },
                 },
-                bookingDate: new Date(date),
-                timeSlot,
-                eventType,
-            };
-            // Send to J&L Autos Sales Team
-            await (0, emailService_1.sendAgencyBookingAlert)(mailPayload);
-            // Send to Customer Invoice-style confirmation
-            await (0, emailService_1.sendCustomerBookingConfirmation)(mailPayload);
-            console.log('[Email Trigger Service] Booking alerts dispatched successfully.');
-        }
-        catch (mailErr) {
-            // Don't fail the response if SMTP fails, but log it
-            console.error('[SMTP Alert Trigger Failure]:', mailErr.message);
-        }
-        return res.status(201).json({
-            message: 'Booking scheduled successfully. Confirmation emails dispatched.',
-            booking,
+            }),
+            db_1.default.booking.count({ where }),
+        ]);
+        return res.json({
+            success: true,
+            data: bookings,
+            pagination: { total, page: parseInt(page), limit: take, pages: Math.ceil(total / take) },
         });
     }
     catch (error) {
-        return res.status(500).json({ message: 'Error establishing showroom booking.', error: error.message });
+        return res.status(500).json({ success: false, message: 'Failed to fetch bookings.', error: error.message });
+    }
+};
+exports.getBookings = getBookings;
+// GET /bookings/:id - Single booking detail
+const getBookingById = async (req, res) => {
+    const { id } = req.params;
+    const user = req.user;
+    try {
+        const booking = await db_1.default.booking.findUnique({
+            where: { id },
+            include: {
+                user: { select: { id: true, name: true, email: true, phone: true } },
+                vehicle: { select: { id: true, make: true, model: true, year: true, color: true, price: true, images: true } },
+            },
+        });
+        if (!booking)
+            return res.status(404).json({ success: false, message: 'Booking not found.' });
+        if (user.role === 'CUSTOMER' && booking.userId !== user.id) {
+            return res.status(403).json({ success: false, message: 'Access denied.' });
+        }
+        return res.json({ success: true, data: booking });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch booking.', error: error.message });
+    }
+};
+exports.getBookingById = getBookingById;
+// POST /bookings - Create new booking
+const createBooking = async (req, res) => {
+    const user = req.user;
+    const { vehicleId, bookingDate, bookingTime, notes } = req.body;
+    if (!vehicleId || !bookingDate || !bookingTime) {
+        return res.status(400).json({ success: false, message: 'vehicleId, bookingDate, and bookingTime are required.' });
+    }
+    try {
+        // Check vehicle exists
+        const vehicle = await db_1.default.vehicle.findUnique({ where: { id: vehicleId } });
+        if (!vehicle)
+            return res.status(404).json({ success: false, message: 'Vehicle not found.' });
+        if (vehicle.status === 'SOLD')
+            return res.status(409).json({ success: false, message: 'Vehicle is already sold.' });
+        // Conflict: same vehicle, same date/time, active booking
+        const conflict = await db_1.default.booking.findFirst({
+            where: {
+                vehicleId,
+                bookingDate: new Date(bookingDate),
+                bookingTime,
+                status: { in: ['pending', 'confirmed'] },
+            },
+        });
+        if (conflict) {
+            return res.status(409).json({ success: false, message: 'This vehicle is already booked at the selected date and time.' });
+        }
+        // Prevent user from having multiple active bookings for same vehicle
+        const existingUserBooking = await db_1.default.booking.findFirst({
+            where: { userId: user.id, vehicleId, status: { in: ['pending', 'confirmed'] } },
+        });
+        if (existingUserBooking) {
+            return res.status(409).json({ success: false, message: 'You already have an active booking for this vehicle.' });
+        }
+        const booking = await db_1.default.booking.create({
+            data: {
+                userId: user.id,
+                vehicleId,
+                bookingDate: new Date(bookingDate),
+                bookingTime,
+                notes,
+                status: 'pending',
+            },
+            include: {
+                vehicle: { select: { make: true, model: true, year: true } },
+            },
+        });
+        // Log activity
+        await db_1.default.activityLog.create({
+            data: {
+                action: 'CREATE_BOOKING',
+                entityType: 'Booking',
+                entityId: booking.id,
+                performedBy: user.id,
+            },
+        });
+        return res.status(201).json({ success: true, message: 'Booking created successfully.', data: booking });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to create booking.', error: error.message });
     }
 };
 exports.createBooking = createBooking;
-// 2. Load Bookings For Authenticated Customer Dashboard
-const getMyBookings = async (req, res) => {
-    if (!req.user) {
-        return res.status(401).json({ message: 'Authentication required to view your bookings.' });
-    }
-    try {
-        const bookings = await db_1.default.booking.findMany({
-            where: { userId: req.user.id },
-            include: {
-                vehicle: true,
-            },
-            orderBy: { date: 'asc' },
-        });
-        const formatted = bookings.map((b) => ({
-            ...b,
-            vehicle: {
-                ...b.vehicle,
-                images: JSON.parse(b.vehicle.images),
-            },
-        }));
-        return res.status(200).json({ bookings: formatted });
-    }
-    catch (error) {
-        return res.status(500).json({ message: 'Error retrieving user bookings.', error: error.message });
-    }
-};
-exports.getMyBookings = getMyBookings;
-// 3. Get All Bookings (Administrative CRM Ledger)
-const getBookingLedger = async (req, res) => {
-    try {
-        const bookings = await db_1.default.booking.findMany({
-            include: {
-                user: { select: { id: true, name: true, email: true, phone: true } },
-                vehicle: true,
-            },
-            orderBy: { date: 'desc' },
-        });
-        const formatted = bookings.map((b) => ({
-            ...b,
-            vehicle: {
-                ...b.vehicle,
-                images: JSON.parse(b.vehicle.images),
-            },
-        }));
-        return res.status(200).json({ count: formatted.length, bookings: formatted, ledger: formatted });
-    }
-    catch (error) {
-        return res.status(500).json({ message: 'Error retrieving system bookings ledger.', error: error.message });
-    }
-};
-exports.getBookingLedger = getBookingLedger;
-// 4. Update Booking Status (Administrative CRM actions)
-const updateBookingStatus = async (req, res) => {
+// PUT /bookings/:id - Update booking (admin: any field; customer: cancel only)
+const updateBooking = async (req, res) => {
     const { id } = req.params;
-    const { status } = req.body; // "PENDING", "CONFIRMED", "CANCELED"
-    if (!status) {
-        return res.status(400).json({ message: 'Updated booking status is required.' });
-    }
+    const user = req.user;
+    const { status, bookingDate, bookingTime, notes } = req.body;
     try {
-        const existing = await db_1.default.booking.findUnique({ where: { id } });
-        if (!existing) {
-            return res.status(404).json({ message: 'Booking entry to update not found.' });
+        const booking = await db_1.default.booking.findUnique({ where: { id } });
+        if (!booking)
+            return res.status(404).json({ success: false, message: 'Booking not found.' });
+        // Customers can only cancel their own bookings
+        if (user.role === 'CUSTOMER') {
+            if (booking.userId !== user.id)
+                return res.status(403).json({ success: false, message: 'Access denied.' });
+            if (status && status !== 'cancelled')
+                return res.status(403).json({ success: false, message: 'Customers can only cancel bookings.' });
         }
-        const updated = await db_1.default.booking.update({
-            where: { id },
-            data: { status },
-            include: {
-                user: { select: { name: true, email: true } },
-                vehicle: true,
-            },
-        });
-        return res.status(200).json({
-            message: `Booking updated to ${status} successfully.`,
-            booking: {
-                ...updated,
-                vehicle: {
-                    ...updated.vehicle,
-                    images: JSON.parse(updated.vehicle.images),
+        const updates = {};
+        if (status)
+            updates.status = status;
+        if (bookingDate)
+            updates.bookingDate = new Date(bookingDate);
+        if (bookingTime)
+            updates.bookingTime = bookingTime;
+        if (notes !== undefined)
+            updates.notes = notes;
+        // Re-check conflict if date/time changes
+        if (bookingDate || bookingTime) {
+            const newDate = bookingDate ? new Date(bookingDate) : booking.bookingDate;
+            const newTime = bookingTime || booking.bookingTime;
+            const conflict = await db_1.default.booking.findFirst({
+                where: {
+                    vehicleId: booking.vehicleId,
+                    bookingDate: newDate,
+                    bookingTime: newTime,
+                    status: { in: ['pending', 'confirmed'] },
+                    NOT: { id },
                 },
+            });
+            if (conflict)
+                return res.status(409).json({ success: false, message: 'This time slot is already taken.' });
+        }
+        const updated = await db_1.default.booking.update({ where: { id }, data: updates });
+        // Log activity
+        await db_1.default.activityLog.create({
+            data: {
+                action: `UPDATE_BOOKING_${(status || 'EDITED').toUpperCase()}`,
+                entityType: 'Booking',
+                entityId: id,
+                performedBy: user.id,
             },
         });
+        return res.json({ success: true, message: 'Booking updated successfully.', data: updated });
     }
     catch (error) {
-        return res.status(500).json({ message: 'Error updating booking status.', error: error.message });
+        return res.status(500).json({ success: false, message: 'Failed to update booking.', error: error.message });
     }
 };
-exports.updateBookingStatus = updateBookingStatus;
+exports.updateBooking = updateBooking;
+// DELETE /bookings/:id - Hard delete (admin only)
+const deleteBooking = async (req, res) => {
+    const { id } = req.params;
+    const user = req.user;
+    try {
+        const booking = await db_1.default.booking.findUnique({ where: { id } });
+        if (!booking)
+            return res.status(404).json({ success: false, message: 'Booking not found.' });
+        await db_1.default.booking.delete({ where: { id } });
+        await db_1.default.activityLog.create({
+            data: { action: 'DELETE_BOOKING', entityType: 'Booking', entityId: id, performedBy: user.id },
+        });
+        return res.json({ success: true, message: 'Booking deleted successfully.' });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to delete booking.', error: error.message });
+    }
+};
+exports.deleteBooking = deleteBooking;
 //# sourceMappingURL=bookingController.js.map

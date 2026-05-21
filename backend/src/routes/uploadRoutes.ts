@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { uploadAvatar, uploadAvatarHandler } from '../controllers/uploadController';
-import { authenticateJWT } from '../middleware/auth';
+import { authenticateJWT } from '../middlewares/auth';
 
 const router = Router();
 

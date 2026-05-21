@@ -191,7 +191,7 @@ export default function AdministrativePanel() {
   }, [user, loadingAuth]);
 
   // 2. Sync all admin datastores
-  const syncLedgers = async () => {
+  async function syncLedgers() {
     try {
       setLoadingData(true);
       setErrorMsg('');

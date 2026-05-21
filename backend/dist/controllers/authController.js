@@ -22,15 +22,13 @@ const register = async (req, res) => {
         return res.status(400).json({ message: 'Email, password, and name are required fields.' });
     }
     try {
-        // Check if user already exists
-        const existingUser = await db_1.default.user.findUnique({ where: { email } });
+        const existingUser = await db_1.default.user.findUnique({ where: { email: email.toLowerCase().trim() } });
         if (existingUser) {
             return res.status(409).json({ message: 'A profile with this email address already exists.' });
         }
-        // Encrypt password
         const salt = await bcryptjs_1.default.genSalt(10);
         const passwordHash = await bcryptjs_1.default.hash(password, salt);
-        // Create user. If it's the first registered user, make them ADMIN for testing convenience!
+        // First registered user becomes ADMIN
         const userCount = await db_1.default.user.count();
         const role = userCount === 0 ? 'ADMIN' : 'CUSTOMER';
         const newUser = await db_1.default.user.create({
@@ -42,12 +40,11 @@ const register = async (req, res) => {
                 role,
             },
         });
-        // Create session JWT
         const token = jsonwebtoken_1.default.sign({ id: newUser.id, email: newUser.email, role: newUser.role, name: newUser.name }, JWT_SECRET, { expiresIn: '7d' });
-        // Mount HTTP-Only Cookie
         res.cookie('token', token, cookieOptions);
         return res.status(201).json({
             message: 'Account registered successfully.',
+            token,
             user: {
                 id: newUser.id,
                 email: newUser.email,
@@ -73,22 +70,24 @@ const login = async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: 'Invalid credentials. User not found.' });
         }
-        // Validate password
+        if (!user.isActive) {
+            return res.status(403).json({ message: 'Account is deactivated. Contact administrator.' });
+        }
         const isMatch = await bcryptjs_1.default.compare(password, user.passwordHash);
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials. Password incorrect.' });
         }
-        // Create session JWT
         const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
-        // Mount HTTP-Only Cookie
         res.cookie('token', token, cookieOptions);
         return res.status(200).json({
             message: 'Login successful.',
+            token,
             user: {
                 id: user.id,
                 email: user.email,
                 name: user.name,
                 phone: user.phone,
+                image: user.image,
                 role: user.role,
             },
         });
@@ -98,15 +97,26 @@ const login = async (req, res) => {
     }
 };
 exports.login = login;
-// 3. Load Current Authenticated Profile
+// 3. Get Current Authenticated Profile
 const getProfile = async (req, res) => {
     if (!req.user) {
-        return res.status(401).json({ message: 'Unauthenticated. Active profile session not found.' });
+        return res.status(401).json({ message: 'Unauthenticated.' });
     }
-    return res.status(200).json({ user: req.user });
+    try {
+        const user = await db_1.default.user.findUnique({
+            where: { id: req.user.id },
+            select: { id: true, email: true, name: true, phone: true, image: true, role: true, createdAt: true },
+        });
+        if (!user)
+            return res.status(404).json({ message: 'User not found.' });
+        return res.status(200).json({ user });
+    }
+    catch (error) {
+        return res.status(500).json({ message: 'Error fetching profile.', error: error.message });
+    }
 };
 exports.getProfile = getProfile;
-// 5. Update Profile
+// 4. Update Profile
 const updateProfile = async (req, res) => {
     if (!req.user) {
         return res.status(401).json({ message: 'Unauthenticated.' });
@@ -119,7 +129,7 @@ const updateProfile = async (req, res) => {
             updates.name = name;
         if (phone)
             updates.phone = phone;
-        if (image)
+        if (image !== undefined)
             updates.image = image;
         if (newPassword) {
             if (!currentPassword) {
@@ -137,7 +147,14 @@ const updateProfile = async (req, res) => {
         const updatedUser = await db_1.default.user.update({ where: { id: userId }, data: updates });
         return res.status(200).json({
             message: 'Profile updated successfully.',
-            user: { id: updatedUser.id, email: updatedUser.email, name: updatedUser.name, phone: updatedUser.phone, image: updatedUser.image, role: updatedUser.role },
+            user: {
+                id: updatedUser.id,
+                email: updatedUser.email,
+                name: updatedUser.name,
+                phone: updatedUser.phone,
+                image: updatedUser.image,
+                role: updatedUser.role,
+            },
         });
     }
     catch (error) {
@@ -145,7 +162,7 @@ const updateProfile = async (req, res) => {
     }
 };
 exports.updateProfile = updateProfile;
-// 4. Logout User / Revoke Session Cookies
+// 5. Logout
 const logout = async (req, res) => {
     res.clearCookie('token', {
         httpOnly: true,
