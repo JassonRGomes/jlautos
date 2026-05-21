@@ -6,8 +6,9 @@ node_modules/
 out/
 
 # TypeScript compilation output
-dist/
-build/
+# (Comentado para permitir envio da pasta compilada ao servidor Hostinger)
+# dist/
+# build/
 
 # Local env files
 .env
