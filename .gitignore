@@ -10,12 +10,15 @@ out/
 # dist/
 # build/
 
-# Local env files
+# Local env files (credenciais reais — NUNCA subir para o GitHub)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Templates de ambiente (PERMITIDO — servem como referência no servidor)
+!.env.example
 
 # OS files
 .DS_Store
