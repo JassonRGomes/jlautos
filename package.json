@@ -2,7 +2,7 @@
   "name": "jlautos-root",
   "version": "1.0.0",
   "private": true,
-  "main": "backend/dist/index.js",
+  "main": "backend/dist/app.js",
   "scripts": {
     "postinstall": "cd backend && npm install",
     "build": "cd backend && npm run build",
