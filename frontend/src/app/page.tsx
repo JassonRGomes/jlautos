@@ -294,10 +294,13 @@ export default function Home() {
                 >
                   {/* Backdrop Background Image */}
                   <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent z-10" />
-                  <img
+                  <Image
                     src={getImageUrl(vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=1920')}
                     alt={`${vehicle.make} ${vehicle.model}`}
-                    className="absolute inset-0 h-full w-full object-cover object-center transform scale-105 transition-transform duration-10000"
+                    fill
+                    priority={isActive}
+                    sizes="100vw"
+                    className="object-cover object-center transform scale-105 transition-transform duration-10000"
                   />
 
                   {/* Overlay text detail block with smooth entry animations */}
@@ -551,10 +554,12 @@ export default function Home() {
                 >
                   {/* Photo Container with Status Badge overlay */}
                   <Link href={`/vehicles/${vehicle.id}`} className="relative h-60 w-full overflow-hidden block bg-zinc-950">
-                    <img
+                    <Image
                       src={firstImage}
                       alt={`${vehicle.make} ${vehicle.model}`}
-                      className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
                     />
                     
                     {/* Visual Status Badges */}

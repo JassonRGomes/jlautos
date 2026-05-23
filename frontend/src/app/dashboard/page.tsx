@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useThemeAuth } from '@/context/ThemeAuthContext';
@@ -337,10 +338,12 @@ export default function CustomerDashboard() {
                           className="bg-card border border-card-border rounded-lg overflow-hidden flex flex-col justify-between shadow-sm group hover:-translate-y-1 transition-all duration-300"
                         >
                           <Link href={`/vehicles/${vehicle.id}`} className="relative aspect-video block bg-zinc-950 overflow-hidden">
-                            <img
+                            <Image
                               src={img}
                               alt={`${vehicle.make} ${vehicle.model}`}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              fill
+                              sizes="(max-width: 768px) 100vw, 33vw"
+                              className="object-cover group-hover:scale-105 transition-transform duration-500"
                             />
                             
                             <div className="absolute top-3 left-3 bg-black/60 px-2 py-0.5 rounded text-[8px] font-bold text-white uppercase tracking-widest border border-white/10">
@@ -482,11 +485,15 @@ export default function CustomerDashboard() {
 
                           <div className="bg-card border border-card-border p-5 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
-                              <img
-                                src={img}
-                                alt={`${booking.vehicle.make} ${booking.vehicle.model}`}
-                                className="w-16 h-12 object-cover rounded bg-zinc-950 border border-card-border flex-shrink-0"
-                              />
+                              <div className="relative w-16 h-12 flex-shrink-0 rounded overflow-hidden bg-zinc-950 border border-card-border">
+                                <Image
+                                  src={img}
+                                  alt={`${booking.vehicle.make} ${booking.vehicle.model}`}
+                                  fill
+                                  sizes="64px"
+                                  className="object-cover"
+                                />
+                              </div>
                               <div>
                                 <h4 className="font-bold text-sm uppercase text-foreground">
                                   {booking.vehicle.make} {booking.vehicle.model}
@@ -572,11 +579,13 @@ export default function CustomerDashboard() {
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-card-border pb-3">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 bg-zinc-950 border border-card-border rounded overflow-hidden">
-                                <img
+                              <div className="relative h-10 w-10 flex-shrink-0 bg-zinc-950 border border-card-border rounded overflow-hidden">
+                                <Image
                                   src={getImageUrl(offer.vehicle.images[0])}
                                   alt={offer.vehicle.make}
-                                  className="w-full h-full object-cover"
+                                  fill
+                                  sizes="40px"
+                                  className="object-cover"
                                 />
                               </div>
                               <div>

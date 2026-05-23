@@ -90,6 +90,11 @@ model Vehicle {
   bookings   Booking[]
   testDrives TestDrive[]
   favorites  Favorite[]
+
+  @@index([make])
+  @@index([status])
+  @@index([price])
+  @@index([year])
 }
 
 model Favorite {
