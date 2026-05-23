@@ -18,59 +18,6 @@ import availabilitySlotRoutes from './routes/availabilitySlotRoutes';
 // Initialize core instances
 const app = express();
 
-// --- AUTO DEPLOY DO BANCO DE DADOS NO PRIMEIRO ACESSO ---
-let isDbSynced = false;
-app.use(async (req: Request, res: Response, next: NextFunction) => {
-  if (!isDbSynced) {
-    try {
-      const fs = require('fs');
-      const path = require('path');
-      
-      // Auto-fix URL encoding for passwords with special characters like '&'
-      if (process.env.DATABASE_URL) {
-        const regex = /:\/\/(.*?):(.*?)@/;
-        const match = process.env.DATABASE_URL.match(regex);
-        if (match && match[2].includes('&')) {
-          process.env.DATABASE_URL = process.env.DATABASE_URL.replace(`:${match[2]}@`, `:${match[2].replace(/&/g, '%26')}@`);
-        }
-      }
-
-      console.log("[JL Autos ERP] Primeiro acesso detectado: Sincronizando banco de dados via Raw SQL...");
-      
-      const initSqlPath = path.join(__dirname, '../prisma/init.sql');
-      if (fs.existsSync(initSqlPath)) {
-        const prisma = (await import('./config/db')).default;
-        const sqlContent = fs.readFileSync(initSqlPath, 'utf8');
-        
-        // Divide o script SQL em comandos individuais
-        const statements = sqlContent.split(/;\s*$/m).filter((s: string) => s.trim().length > 0);
-        
-        let successCount = 0;
-        for (const stmt of statements) {
-          try {
-            await prisma.$executeRawUnsafe(stmt);
-            successCount++;
-          } catch (err: any) {
-            // Ignora erros de "Tabela já existe" ou "Chave duplicada"
-            if (!err.message.includes('already exists') && !err.message.includes('Duplicate')) {
-              console.error("[JL Autos ERP] Erro ao executar query SQL específica:", err.message);
-            }
-          }
-        }
-        console.log(`[JL Autos ERP] Banco de dados sincronizado com sucesso via código! ${successCount} queries aplicadas.`);
-      } else {
-        console.error("[JL Autos ERP] Erro: Arquivo init.sql não encontrado em", initSqlPath);
-      }
-      isDbSynced = true; // Só executa uma vez
-    } catch (error: any) {
-      console.error("[JL Autos ERP] Erro crítico ao sincronizar banco no primeiro acesso:", error.message);
-      isDbSynced = true; 
-    }
-  }
-  next();
-});
-// --------------------------------------------------------
-
 // Security and Optimization Middlewares
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -86,6 +33,79 @@ app.use(cookieParser());
 
 // Static file serving for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
+// --- FOOLPROOF DATABASE DEPLOY ROUTE ---
+app.get('/api/setup-database', async (req: Request, res: Response) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    let dbUrl = process.env.DATABASE_URL;
+    
+    if (!dbUrl) {
+      return res.status(500).json({ error: "DATABASE_URL environment variable is not set." });
+    }
+
+    // Auto-fix URL encoding for passwords with special characters like '&'
+    const regex = /:\/\/(.*?):(.*?)@/;
+    const match = dbUrl.match(regex);
+    if (match && match[2].includes('&')) {
+      dbUrl = dbUrl.replace(`:${match[2]}@`, `:${match[2].replace(/&/g, '%26')}@`);
+    }
+
+    const initSqlPath = path.join(__dirname, '../prisma/init.sql');
+    if (!fs.existsSync(initSqlPath)) {
+      return res.status(500).json({ error: `init.sql not found at ${initSqlPath}` });
+    }
+
+    // Parse URL manually to bypass any Prisma issues
+    const url = new URL(dbUrl);
+    const mysql2 = require('mysql2/promise');
+    
+    const connection = await mysql2.createConnection({
+      host: url.hostname,
+      port: url.port ? parseInt(url.port) : 3306,
+      user: url.username,
+      password: decodeURIComponent(url.password),
+      database: url.pathname.replace('/', ''),
+      ssl: url.searchParams.get('sslcert') || url.searchParams.get('sslmode') ? { rejectUnauthorized: false } : undefined
+    });
+
+    const sqlContent = fs.readFileSync(initSqlPath, 'utf8');
+    const statements = sqlContent.split(/;\s*$/m).filter((s: string) => s.trim().length > 0);
+    
+    const results = {
+      total: statements.length,
+      success: 0,
+      errors: [] as string[]
+    };
+
+    for (const stmt of statements) {
+      try {
+        await connection.query(stmt);
+        results.success++;
+      } catch (err: any) {
+        if (!err.message.includes('already exists') && !err.message.includes('Duplicate')) {
+          results.errors.push(err.message);
+        }
+      }
+    }
+    
+    await connection.end();
+    
+    return res.status(200).json({
+      message: "Database deployment routine finished.",
+      details: results
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({
+      error: "CRITICAL FAILURE during database setup",
+      details: error.message,
+      stack: error.stack
+    });
+  }
+});
+// --------------------------------------------------------
 
 // Base Route
 app.get('/', (req: Request, res: Response) => {
