@@ -20,14 +20,11 @@ const app = express();
 
 // --- AUTO DEPLOY DO BANCO DE DADOS NO PRIMEIRO ACESSO ---
 let isDbSynced = false;
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use(async (req: Request, res: Response, next: NextFunction) => {
   if (!isDbSynced) {
     try {
-      const { execSync } = require('child_process');
       const fs = require('fs');
-      const nodePath = process.execPath;
-      const prismaPath = path.join(__dirname, '../../node_modules/prisma/build/index.js');
-      const schemaPath = path.join(__dirname, '../prisma/schema.prisma');
+      const path = require('path');
       
       // Auto-fix URL encoding for passwords with special characters like '&'
       if (process.env.DATABASE_URL) {
@@ -38,19 +35,35 @@ app.use((req: Request, res: Response, next: NextFunction) => {
         }
       }
 
-      console.log("[JL Autos ERP] Primeiro acesso detectado: Sincronizando banco de dados...");
-      if (fs.existsSync(prismaPath)) {
-        execSync(`"${nodePath}" "${prismaPath}" db push --schema="${schemaPath}" --accept-data-loss`, { env: process.env });
-        console.log("[JL Autos ERP] Banco de dados sincronizado com sucesso no primeiro acesso!");
+      console.log("[JL Autos ERP] Primeiro acesso detectado: Sincronizando banco de dados via Raw SQL...");
+      
+      const initSqlPath = path.join(__dirname, '../prisma/init.sql');
+      if (fs.existsSync(initSqlPath)) {
+        const prisma = (await import('./config/db')).default;
+        const sqlContent = fs.readFileSync(initSqlPath, 'utf8');
+        
+        // Divide o script SQL em comandos individuais
+        const statements = sqlContent.split(/;\s*$/m).filter((s: string) => s.trim().length > 0);
+        
+        let successCount = 0;
+        for (const stmt of statements) {
+          try {
+            await prisma.$executeRawUnsafe(stmt);
+            successCount++;
+          } catch (err: any) {
+            // Ignora erros de "Tabela já existe" ou "Chave duplicada"
+            if (!err.message.includes('already exists') && !err.message.includes('Duplicate')) {
+              console.error("[JL Autos ERP] Erro ao executar query SQL específica:", err.message);
+            }
+          }
+        }
+        console.log(`[JL Autos ERP] Banco de dados sincronizado com sucesso via código! ${successCount} queries aplicadas.`);
       } else {
-        console.error("[JL Autos ERP] Erro: Prisma CLI não encontrado em", prismaPath);
+        console.error("[JL Autos ERP] Erro: Arquivo init.sql não encontrado em", initSqlPath);
       }
       isDbSynced = true; // Só executa uma vez
     } catch (error: any) {
-      console.error("[JL Autos ERP] Erro ao sincronizar banco no primeiro acesso:", error.message);
-      if (error.stdout) console.error("STDOUT:", error.stdout.toString());
-      if (error.stderr) console.error("STDERR:", error.stderr.toString());
-      // Deixa seguir para não travar a API, mas avisa no log
+      console.error("[JL Autos ERP] Erro crítico ao sincronizar banco no primeiro acesso:", error.message);
       isDbSynced = true; 
     }
   }
