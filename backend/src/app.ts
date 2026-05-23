@@ -18,6 +18,46 @@ import availabilitySlotRoutes from './routes/availabilitySlotRoutes';
 // Initialize core instances
 const app = express();
 
+// --- AUTO DEPLOY DO BANCO DE DADOS NO PRIMEIRO ACESSO ---
+let isDbSynced = false;
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (!isDbSynced) {
+    try {
+      const { execSync } = require('child_process');
+      const fs = require('fs');
+      const nodePath = process.execPath;
+      const prismaPath = path.join(__dirname, '../../node_modules/prisma/build/index.js');
+      const schemaPath = path.join(__dirname, '../prisma/schema.prisma');
+      
+      // Auto-fix URL encoding for passwords with special characters like '&'
+      if (process.env.DATABASE_URL) {
+        const regex = /:\/\/(.*?):(.*?)@/;
+        const match = process.env.DATABASE_URL.match(regex);
+        if (match && match[2].includes('&')) {
+          process.env.DATABASE_URL = process.env.DATABASE_URL.replace(`:${match[2]}@`, `:${match[2].replace(/&/g, '%26')}@`);
+        }
+      }
+
+      console.log("[JL Autos ERP] Primeiro acesso detectado: Sincronizando banco de dados...");
+      if (fs.existsSync(prismaPath)) {
+        execSync(`"${nodePath}" "${prismaPath}" db push --schema="${schemaPath}" --accept-data-loss`, { env: process.env });
+        console.log("[JL Autos ERP] Banco de dados sincronizado com sucesso no primeiro acesso!");
+      } else {
+        console.error("[JL Autos ERP] Erro: Prisma CLI não encontrado em", prismaPath);
+      }
+      isDbSynced = true; // Só executa uma vez
+    } catch (error: any) {
+      console.error("[JL Autos ERP] Erro ao sincronizar banco no primeiro acesso:", error.message);
+      if (error.stdout) console.error("STDOUT:", error.stdout.toString());
+      if (error.stderr) console.error("STDERR:", error.stderr.toString());
+      // Deixa seguir para não travar a API, mas avisa no log
+      isDbSynced = true; 
+    }
+  }
+  next();
+});
+// --------------------------------------------------------
+
 // Security and Optimization Middlewares
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
