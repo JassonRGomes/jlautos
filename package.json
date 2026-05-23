@@ -1,15 +1,14 @@
 {
   "name": "jlautos-root",
   "version": "1.0.0",
-  "private": true,
-  "main": "backend/dist/app.js",
-  "scripts": {
-    "postinstall": "cd backend && npm install",
-    "build": "cd backend && npm run build",
-    "start": "cd backend && npm start"
-  },
-  "dependencies": {
-    "axios-cookiejar-support": "^7.0.0",
-    "tough-cookie": "^6.0.1"
-  }
+  "type": "module", 
+  "main": "server.js", 
+  "scripts": { 
+    "start": "node server.js" 
+  }, 
+  "dependencies": { 
+    "dotenv": "^16.4.5", 
+    "express": "^4.21.2", 
+    "mysql2": "^3.11.5" 
+    } 
 }
