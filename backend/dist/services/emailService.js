@@ -9,7 +9,7 @@ const SMTP_HOST = process.env.EMAIL_SMTP_HOST || 'smtp.mailtrap.io';
 const SMTP_PORT = parseInt(process.env.EMAIL_SMTP_PORT || '2525');
 const SMTP_USER = process.env.EMAIL_SMTP_USER || '';
 const SMTP_PASS = process.env.EMAIL_SMTP_PASS || '';
-const AGENCY_EMAIL = process.env.AGENCY_EMAIL || 'sales@jlautos.com';
+const AGENCY_EMAIL = process.env.AGENCY_EMAIL || 'admin@jlautos.com';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 // Configurable transporter
 const transporter = nodemailer_1.default.createTransport({

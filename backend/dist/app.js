@@ -26,6 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv/config");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
@@ -41,9 +42,8 @@ const customerRoutes_1 = __importDefault(require("./routes/customerRoutes"));
 const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 const dealershipRoutes_1 = __importDefault(require("./routes/dealershipRoutes"));
 const availabilitySlotRoutes_1 = __importDefault(require("./routes/availabilitySlotRoutes"));
-// Initialize core instances
+const settingsRoutes_1 = __importDefault(require("./routes/settingsRoutes"));
 const app = (0, express_1.default)();
-// Security and Optimization Middlewares
 app.use((0, helmet_1.default)({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
@@ -55,83 +55,15 @@ app.use((0, compression_1.default)());
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 app.use((0, cookie_parser_1.default)());
-// Static file serving for uploads
 app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../public/uploads')));
-// --- FOOLPROOF DATABASE DEPLOY ROUTE ---
-app.get('/api/setup-database', async (req, res) => {
-    try {
-        const fs = require('fs');
-        const path = require('path');
-        let dbUrl = process.env.DATABASE_URL;
-        if (!dbUrl) {
-            return res.status(500).json({ error: "DATABASE_URL environment variable is not set." });
-        }
-        // Auto-fix URL encoding for passwords with special characters like '&'
-        const regex = /:\/\/(.*?):(.*?)@/;
-        const match = dbUrl.match(regex);
-        if (match && match[2].includes('&')) {
-            dbUrl = dbUrl.replace(`:${match[2]}@`, `:${match[2].replace(/&/g, '%26')}@`);
-        }
-        const initSqlPath = path.join(__dirname, '../prisma/init.sql');
-        if (!fs.existsSync(initSqlPath)) {
-            return res.status(500).json({ error: `init.sql not found at ${initSqlPath}` });
-        }
-        // Parse URL manually to bypass any Prisma issues
-        const url = new URL(dbUrl);
-        const mysql2 = require('mysql2/promise');
-        const connection = await mysql2.createConnection({
-            host: url.hostname,
-            port: url.port ? parseInt(url.port) : 3306,
-            user: url.username,
-            password: decodeURIComponent(url.password),
-            database: url.pathname.replace('/', ''),
-            ssl: url.searchParams.get('sslcert') || url.searchParams.get('sslmode') ? { rejectUnauthorized: false } : undefined
-        });
-        const sqlContent = fs.readFileSync(initSqlPath, 'utf8');
-        const statements = sqlContent.split(/;\s*$/m).filter((s) => s.trim().length > 0);
-        const results = {
-            total: statements.length,
-            success: 0,
-            errors: []
-        };
-        for (const stmt of statements) {
-            try {
-                await connection.query(stmt);
-                results.success++;
-            }
-            catch (err) {
-                if (!err.message.includes('already exists') && !err.message.includes('Duplicate')) {
-                    results.errors.push(err.message);
-                }
-            }
-        }
-        await connection.end();
-        return res.status(200).json({
-            message: "Database deployment routine finished.",
-            details: results
-        });
-    }
-    catch (error) {
-        return res.status(500).json({
-            error: "CRITICAL FAILURE during database setup",
-            details: error.message,
-            stack: error.stack
-        });
-    }
+// Base route
+app.get('/', (_req, res) => {
+    res.json({ name: 'JL Autos ERP API', version: '2.0.0', status: 'Operational' });
 });
-// --------------------------------------------------------
-// Base Route
-app.get('/', (req, res) => {
-    res.json({
-        name: 'JL Autos ERP API',
-        version: '2.0.0',
-        status: 'Operational',
-    });
-});
-// Health Check
-app.get('/health', async (req, res) => {
+// Health Check with database connectivity test
+app.get('/health', async (_req, res) => {
     try {
-        const prisma = (await Promise.resolve().then(() => __importStar(require('./config/db')))).default;
+        const { default: prisma } = await Promise.resolve().then(() => __importStar(require('./config/db')));
         await prisma.$queryRaw `SELECT 1`;
         res.status(200).json({ status: 'OK', database: 'Connected' });
     }
@@ -139,7 +71,7 @@ app.get('/health', async (req, res) => {
         res.status(500).json({ status: 'ERROR', database: 'Disconnected' });
     }
 });
-// API Routes
+// Routes
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/vehicles', vehicleRoutes_1.default);
 app.use('/api/bookings', bookingRoutes_1.default);
@@ -148,11 +80,12 @@ app.use('/api/customers', customerRoutes_1.default);
 app.use('/api/uploads', uploadRoutes_1.default);
 app.use('/api/dealerships', dealershipRoutes_1.default);
 app.use('/api/availability-slots', availabilitySlotRoutes_1.default);
+app.use('/api/settings', settingsRoutes_1.default);
 // 404 Handler for undefined API routes
 app.use('/api/*', (req, res) => {
     res.status(404).json({
         success: false,
-        message: `API endpoint not found: ${req.method} ${req.originalUrl}`
+        message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
     });
 });
 // Global Error Handler
@@ -163,14 +96,13 @@ app.use((err, req, res, next) => {
     res.status(status).json({
         success: false,
         error: message,
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
     });
 });
-// Start Server
-const PORT = process.env.PORT || 5001;
-// Only listen if this file is run directly
+const PORT = Number(process.env.PORT) || 5001;
+// Only listen if run directly (not when imported by tests or server.js)
 if (require.main === module) {
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`[JL Autos ERP] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
     });
 }

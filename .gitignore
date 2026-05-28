@@ -12,6 +12,7 @@ out/
 
 # Local env files (credenciais reais — NUNCA subir para o GitHub)
 .env
+backend/.env
 .env.local
 .env.development.local
 .env.test.local

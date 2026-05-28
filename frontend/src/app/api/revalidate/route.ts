@@ -14,12 +14,13 @@ export async function POST(request: NextRequest) {
   }
 
   if (tag) {
-    revalidateTag(tag, 'max');
+    // @ts-ignore
+    revalidateTag(tag);
     return NextResponse.json({ revalidated: true, tag, now: Date.now() });
   }
 
   if (path) {
-    revalidatePath(path);
+    revalidatePath(path, 'page');
     return NextResponse.json({ revalidated: true, path, now: Date.now() });
   }
 

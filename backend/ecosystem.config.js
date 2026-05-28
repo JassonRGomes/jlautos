@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'jlautos-erp-backend',
-      script: './build/app.js',
+      script: './dist/app.js',
       instances: 'max',
       exec_mode: 'cluster',
       autorestart: true,

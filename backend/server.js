@@ -1,2 +1,2 @@
-// Entry point wrapper para o ambiente de produção (ex: Hostinger/cPanel)
-require('./dist/index.js');
+// Entry point para produção (Hostinger/PM2)
+require('./dist/app.js');

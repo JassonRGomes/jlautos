@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -14,6 +15,7 @@ import customerRoutes from './routes/customerRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import dealershipRoutes from './routes/dealershipRoutes';
 import availabilitySlotRoutes from './routes/availabilitySlotRoutes';
+import settingsRoutes from './routes/settingsRoutes';
 
 const app = express();
 
@@ -22,16 +24,32 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
 }));
 
 app.use(compression());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
+// Base route
+app.get('/', (_req, res) => {
+  res.json({ name: 'JL Autos ERP API', version: '2.0.0', status: 'Operational' });
+});
+
+// Health Check with database connectivity test
+app.get('/health', async (_req, res) => {
+  try {
+    const { default: prisma } = await import('./config/db');
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({ status: 'OK', database: 'Connected' });
+  } catch (error) {
+    res.status(500).json({ status: 'ERROR', database: 'Disconnected' });
+  }
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -40,15 +58,38 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/test-drives', testDriveRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/uploads', uploadRoutes);
-app.use('/api/dealership', dealershipRoutes);
+app.use('/api/dealerships', dealershipRoutes);
 app.use('/api/availability-slots', availabilitySlotRoutes);
+app.use('/api/settings', settingsRoutes);
 
-app.get('/health', (_req, res) => {
-  res.status(200).json({ ok: true });
+// 404 Handler for undefined API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
+  });
 });
 
-const PORT = Number(process.env.PORT) || 3001;
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+// Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('[Global Error]:', err.stack || err);
+  const status = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+  res.status(status).json({
+    success: false,
+    error: message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  });
 });
+
+const PORT = Number(process.env.PORT) || 5001;
+
+// Only listen if run directly (not when imported by tests or server.js)
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[JL Autos ERP] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  });
+}
+
+export default app;
+

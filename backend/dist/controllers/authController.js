@@ -9,10 +9,11 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const db_1 = __importDefault(require("../config/db"));
 const JWT_SECRET = process.env.JWT_SECRET || 'jl_autos_premium_luxury_secret_key_2026';
 // HTTP-Only Cookie options
+const isProduction = process.env.NODE_ENV === 'production';
 const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: (isProduction ? 'none' : 'lax'),
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Days
 };
 // 1. Register User (CUSTOMER role by default)
@@ -166,8 +167,8 @@ exports.updateProfile = updateProfile;
 const logout = async (req, res) => {
     res.clearCookie('token', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: isProduction,
+        sameSite: (isProduction ? 'none' : 'lax'),
     });
     return res.status(200).json({ message: 'Session logged out and cookies cleared successfully.' });
 };

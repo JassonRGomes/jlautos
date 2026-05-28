@@ -23,7 +23,9 @@ import {
   MessageCircle,
 } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001');
+const API_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, '') ||
+  'http://localhost:5001';
 
 interface Vehicle {
   id: string;
@@ -48,6 +50,12 @@ interface Vehicle {
 export default function Home() {
   const { user } = useThemeAuth();
   const router = useRouter();
+  
+  const [origin, setOrigin] = useState('');
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   // State Management
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -85,7 +93,7 @@ export default function Home() {
   const fetchVehicles = async (query = '') => {
     try {
       setLoading(true);
-      const res = await axios.get(`${BACKEND_URL}/api/vehicles${query}`);
+      const res = await axios.get(`${API_URL}/api/vehicles${query}`);
       if (res.data && res.data.vehicles) {
         setVehicles(res.data.vehicles);
         
@@ -105,7 +113,7 @@ export default function Home() {
   const fetchUserFavorites = async () => {
     if (!user) return;
     try {
-      const res = await axios.get(`${BACKEND_URL}/api/vehicles/favorites`);
+      const res = await axios.get(`${API_URL}/api/vehicles/favorites`);
       if (res.data && res.data.vehicles) {
         setUserFavorites(res.data.vehicles.map((v: Vehicle) => v.id));
       }
@@ -125,25 +133,26 @@ export default function Home() {
   }, [user]);
 
   // 3. Carousel Slider Cycle Management
-  useEffect(() => {
-    startSlideShow();
-    return () => stopSlideShow();
-  }, [heroVehicles]);
+  function stopSlideShow() {
+    if (slideInterval.current) {
+      clearInterval(slideInterval.current);
+    }
+  }
 
-  const startSlideShow = () => {
+  function startSlideShow() {
     stopSlideShow();
     if (heroVehicles.length > 1) {
       slideInterval.current = setInterval(() => {
         setActiveSlide((prev) => (prev + 1) % heroVehicles.length);
       }, 6000);
     }
-  };
+  }
 
-  const stopSlideShow = () => {
-    if (slideInterval.current) {
-      clearInterval(slideInterval.current);
-    }
-  };
+  useEffect(() => {
+    startSlideShow();
+    return () => stopSlideShow();
+  }, [heroVehicles]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const handlePrevSlide = () => {
     stopSlideShow();
@@ -204,7 +213,7 @@ export default function Home() {
         mileage: mileageFilter || undefined,
       };
 
-      await axios.post(`${BACKEND_URL}/api/vehicles/saved-searches`, {
+      await axios.post(`${API_URL}/api/vehicles/saved-searches`, {
         name: savedSearchName,
         queryParams,
       });
@@ -231,7 +240,7 @@ export default function Home() {
     }
 
     try {
-      const res = await axios.post(`${BACKEND_URL}/api/vehicles/${id}/favorite`);
+      const res = await axios.post(`${API_URL}/api/vehicles/${id}/favorite`);
       const isFavorite = res.data.isFavorite;
       
       setUserFavorites((prev) =>
@@ -270,7 +279,7 @@ export default function Home() {
 
   const handleCopyLink = () => {
     if (!activeShareVehicle) return;
-    const url = `${window.location.origin}/vehicles/${activeShareVehicle.id}`;
+    const url = `${origin}/vehicles/${activeShareVehicle.id}`;
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
@@ -545,7 +554,7 @@ export default function Home() {
             {filteredInventory.map((vehicle) => {
               const firstImage = getImageUrl(vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=600');
               const isFavorited = userFavorites.includes(vehicle.id);
-              const likeData = likedVehicles[vehicle.id] || { count: Math.floor(Math.random() * 32) + 12, userLiked: false };
+              const likeData = likedVehicles[vehicle.id] || { count: (vehicle.id.charCodeAt(0) % 32) + 12, userLiked: false };
 
               return (
                 <div
@@ -712,7 +721,7 @@ export default function Home() {
             ) : (
               <div className="space-y-4">
                 <p className="text-xs text-text-muted leading-relaxed">
-                  Name these search filters (e.g. "Aston Martin Gray" or "Coupes under 300k") so you can trigger them instantly from your customer dashboard.
+                  Name these search filters (e.g. &quot;Aston Martin Gray&quot; or &quot;Coupes under 300k&quot;) so you can trigger them instantly from your customer dashboard.
                 </p>
                 <div className="flex flex-col space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Filter Label</label>
@@ -759,7 +768,7 @@ export default function Home() {
               
               {/* WhatsApp Share */}
               <a
-                href={`https://wa.me/?text=Check%20out%20this%20stunning%20${activeShareVehicle.year}%20${activeShareVehicle.make}%20${activeShareVehicle.model}%20available%20at%20J%26L%20Autos:%20${window.location.origin}/vehicles/${activeShareVehicle.id}`}
+                href={`https://wa.me/?text=Check%20out%20this%20stunning%20${activeShareVehicle.year}%20${activeShareVehicle.make}%20${activeShareVehicle.model}%20available%20at%20J%26L%20Autos:%20${origin}/vehicles/${activeShareVehicle.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 p-3 border border-card-border rounded-md hover:bg-emerald-500/10 hover:border-emerald-500 text-sm font-semibold transition-all group"
@@ -770,7 +779,7 @@ export default function Home() {
 
               {/* FB Share */}
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${window.location.origin}/vehicles/${activeShareVehicle.id}`}
+                href={`https://www.facebook.com/sharer/sharer.php?u=${origin}/vehicles/${activeShareVehicle.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 p-3 border border-card-border rounded-md hover:bg-blue-600/10 hover:border-blue-600 text-sm font-semibold transition-all group"
@@ -788,7 +797,7 @@ export default function Home() {
                 <input
                   type="text"
                   readOnly
-                  value={`${window.location.origin}/vehicles/${activeShareVehicle.id}`}
+                  value={`${origin}/vehicles/${activeShareVehicle.id}`}
                   className="bg-background border border-card-border text-foreground px-3 py-2 rounded-md text-xs flex-grow outline-none truncate font-mono"
                 />
                 <button

@@ -6,7 +6,7 @@ import axios from 'axios';
 // Ensure cookie requests are always sent
 axios.defaults.withCredentials = true;
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001');
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001')).replace(/\/$/, '');
 
 interface User {
   id: string;

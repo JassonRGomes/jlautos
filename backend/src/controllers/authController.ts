@@ -7,10 +7,11 @@ import { AuthenticatedRequest } from '../middlewares/auth';
 const JWT_SECRET = process.env.JWT_SECRET || 'jl_autos_premium_luxury_secret_key_2026';
 
 // HTTP-Only Cookie options
+const isProduction = process.env.NODE_ENV === 'production';
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  secure: isProduction,
+  sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Days
 };
 
@@ -181,8 +182,8 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
 export const logout = async (req: Request, res: Response) => {
   res.clearCookie('token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
   });
   return res.status(200).json({ message: 'Session logged out and cookies cleared successfully.' });
 };
