@@ -25,7 +25,19 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    const allowed = [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://192.168.1.228:3001',
+    ];
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
   credentials: true,
 }));
 
@@ -94,8 +106,17 @@ const PORT = Number(process.env.PORT) || 5001;
 
 // Only listen if run directly (not when imported by tests or server.js)
 if (require.main === module) {
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, '0.0.0.0', async () => {
     console.log(`[JL Autos ERP] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    // Test database connection on startup
+    try {
+      const { default: prisma } = await import('./config/db');
+      await prisma.$queryRaw`SELECT 1`;
+      console.log('[DB] ✅ Database connection established successfully.');
+    } catch (err: any) {
+      console.error('[DB] ❌ Database connection FAILED:', err.message);
+      console.error('[DB] Check your DATABASE_URL in backend/.env');
+    }
   });
 }
 
