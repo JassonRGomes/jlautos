@@ -1,0 +1,17 @@
+Servidor rodando na porta 3003
+Database connection error: Error: connect ETIMEDOUT
+    at file:///Users/jassongomes/Downloads/J-Lautos/src/app.js:4:66
+    at Layer.handle [as handle_request] (/Users/jassongomes/Downloads/J-Lautos/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/jassongomes/Downloads/J-Lautos/node_modules/express/lib/router/route.js:149:13)
+    at Route.dispatch (/Users/jassongomes/Downloads/J-Lautos/node_modules/express/lib/router/route.js:119:3)
+    at Layer.handle [as handle_request] (/Users/jassongomes/Downloads/J-Lautos/node_modules/express/lib/router/layer.js:95:5)
+    at /Users/jassongomes/Downloads/J-Lautos/node_modules/express/lib/router/index.js:284:15
+    at router.process_params (/Users/jassongomes/Downloads/J-Lautos/node_modules/express/lib/router/index.js:346:12)
+    at next (/Users/jassongomes/Downloads/J-Lautos/node_modules/express/lib/router/index.js:280:10)
+    at jsonParser (/Users/jassongomes/Downloads/J-Lautos/node_modules/body-parser/lib/types/json.js:113:7)
+    at Layer.handle [as handle_request] (/Users/jassongomes/Downloads/J-Lautos/node_modules/express/lib/router/layer.js:95:5) {
+  errorno: 'ETIMEDOUT',
+  code: 'ETIMEDOUT',
+  syscall: 'connect',
+  fatal: true
+}

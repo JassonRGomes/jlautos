@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/db';
 import { AuthenticatedRequest } from '../middlewares/auth';
+import { sendBookingStatusSMSToCustomer } from '../services/smsService';
 
 // GET /bookings - List bookings (admin: all, user: own)
 export const getBookings = async (req: AuthenticatedRequest, res: Response) => {
@@ -203,5 +204,59 @@ export const deleteBooking = async (req: AuthenticatedRequest, res: Response) =>
     return res.json({ success: true, message: 'Booking deleted successfully.' });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Failed to delete booking.', error: error.message });
+  }
+};
+
+// PATCH /bookings/:id/status - Update booking status and notify via SMS
+export const updateBookingStatus = async (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const user = req.user!;
+  const { status } = req.body;
+
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: { user: true }
+    });
+
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
+
+    // Validate status
+    const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Valid status is required.' });
+    }
+
+    const updated = await prisma.booking.update({ where: { id }, data: { status } });
+
+    let smsSent = false;
+    let smsLog = null;
+
+    if (['confirmed', 'cancelled'].includes(status) && booking.user.phone) {
+      const smsStatus = status === 'confirmed' ? 'CONFIRMED' : 'CANCELLED';
+      try {
+        smsSent = await sendBookingStatusSMSToCustomer({
+          bookingId: booking.id,
+          customerPhone: booking.user.phone,
+          status: smsStatus
+        });
+        smsLog = smsSent ? `SMS sent for status ${status}` : `SMS mock dispatch for ${status}`;
+      } catch (err: any) {
+        smsLog = err.message;
+      }
+    }
+
+    await prisma.activityLog.create({
+      data: {
+        action: `UPDATE_BOOKING_STATUS_${status.toUpperCase()}`,
+        entityType: 'Booking',
+        entityId: id,
+        performedBy: user.id,
+      },
+    });
+
+    return res.json({ success: true, message: 'Booking status updated.', data: updated, smsSent, smsLog });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to update booking status.', error: error.message });
   }
 };

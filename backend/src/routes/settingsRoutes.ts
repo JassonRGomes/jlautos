@@ -1,5 +1,8 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../config/db';
+import { authenticateJWT, requireAdmin } from '../middlewares/auth';
+import { generatePDFReport } from '../utils/pdf';
+import { generateExcelReport } from '../utils/excel';
 
 const router = Router();
 
@@ -46,6 +49,72 @@ router.get('/', async (_req: Request, res: Response) => {
     });
   } catch (error: any) {
     return res.status(500).json({ message: 'Failed to load dealership settings.', error: error.message });
+  }
+});
+
+// GET /api/settings/customers — Loads registered customer profiles with their bookings/offers counts
+router.get('/customers', authenticateJWT, requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const customers = await prisma.user.findMany({
+      where: { role: 'CUSTOMER' },
+      include: {
+        _count: {
+          select: { bookings: true, offers: true },
+        },
+      },
+    });
+    return res.status(200).json({ success: true, data: customers });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to load customers.', error: error.message });
+  }
+});
+
+// GET /api/settings/export — Produces inventory sheets
+router.get('/export', authenticateJWT, requireAdmin, async (req: Request, res: Response) => {
+  const format = req.query.format as string;
+  try {
+    const vehicles = await prisma.vehicle.findMany();
+    const headers = ['Make', 'Model', 'Year', 'Price', 'Status'];
+    const rows = vehicles.map(v => [v.make, v.model, v.year.toString(), v.price.toString(), v.status]);
+    const title = 'Inventory Report';
+
+    if (format === 'excel') {
+      await generateExcelReport(res, 'Inventory', headers, rows, 'inventory.xlsx');
+    } else {
+      await generatePDFReport(res, title, headers, rows, 'Inventory overview');
+    }
+  } catch (error: any) {
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, message: 'Export failed.', error: error.message });
+    }
+  }
+});
+
+// POST /api/settings/newsletter — Blasts promotional emails to all active customers
+router.post('/newsletter', authenticateJWT, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    // Placeholder logic for email dispatch
+    return res.status(200).json({ success: true, message: 'Newsletter dispatched to active customers.' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to send newsletter.', error: error.message });
+  }
+});
+
+// PUT /api/settings/ — Updates active dealership settings
+router.put('/', authenticateJWT, requireAdmin, async (req: Request, res: Response) => {
+  const { address, phone } = req.body;
+  try {
+    const dealership = await prisma.dealership.findFirst({ where: { status: 'ACTIVE' } });
+    if (dealership) {
+      const updated = await prisma.dealership.update({
+        where: { id: dealership.id },
+        data: { address, phone },
+      });
+      return res.status(200).json({ success: true, data: updated });
+    }
+    return res.status(404).json({ success: false, message: 'Active dealership not found.' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to update settings.', error: error.message });
   }
 });
 

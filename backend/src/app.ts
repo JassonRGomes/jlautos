@@ -16,6 +16,7 @@ import uploadRoutes from './routes/uploadRoutes';
 import dealershipRoutes from './routes/dealershipRoutes';
 import availabilitySlotRoutes from './routes/availabilitySlotRoutes';
 import settingsRoutes from './routes/settingsRoutes';
+import offerRoutes from './routes/offerRoutes';
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/dealerships', dealershipRoutes);
 app.use('/api/availability-slots', availabilitySlotRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/offers', offerRoutes);
 
 // 404 Handler for undefined API routes
 app.use('/api/*', (req, res) => {
