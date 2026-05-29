@@ -1,16 +1,13 @@
 {
   "name": "jlautos-root",
   "version": "1.0.0",
-  "type": "module",
+  "description": "J&L Autos – Entry point for Hostinger deployment",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "echo 'No build required'"
+    "build": "cd backend && npm install && npm run build"
   },
-  "dependencies": {
-    "cors": "^2.8.6",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.2",
-    "mysql2": "^3.11.5"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
