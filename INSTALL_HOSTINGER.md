@@ -38,22 +38,15 @@ cd ~/domains/lightcyan-shark-136321.hostingersite.com/public_html
 bash scripts/setup-hostinger.sh
 ```
 
-**Ou manualmente (passo a passo):**
+**Ou de forma simplificada a partir da raiz do projeto:**
 
 ```bash
-# Entrar no backend
-cd backend
-
-# Instalar dependências
+# Na raiz do projeto, execute o comando de instalação (isso instalará as dependências do backend e gerará o Prisma Client automaticamente)
 npm install
 
-# Gerar Prisma Client
-npx prisma generate
-
-# Criar/atualizar tabelas no banco MySQL
+# Em seguida, configure as tabelas e o usuário administrador no banco:
+cd backend
 npx prisma db push
-
-# Criar usuário admin no banco
 npx ts-node src/prisma/seed.ts
 ```
 

@@ -5,7 +5,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const prisma = new client_1.PrismaClient();
+// Strip surrounding quotes that Hostinger hPanel may include when reading .env values
+const rawDbUrl = process.env.DATABASE_URL || '';
+const databaseUrl = rawDbUrl.replace(/^["']|["']$/g, '');
+const prisma = new client_1.PrismaClient({
+    datasources: { db: { url: databaseUrl } },
+});
 async function main() {
     console.log('🚀 Iniciando seed do banco de dados J&L Autos...');
     try {
