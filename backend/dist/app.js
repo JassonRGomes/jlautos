@@ -56,10 +56,8 @@ app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 app.use((0, cookie_parser_1.default)());
 app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../public/uploads')));
-// Base route
-app.get('/', (_req, res) => {
-    res.json({ name: 'JL Autos ERP API', version: '2.0.0', status: 'Operational' });
-});
+// Serve the static frontend built files with HTML extension handling
+app.use(express_1.default.static(path_1.default.join(__dirname, '../public'), { extensions: ['html'] }));
 // Health Check with database connectivity test
 app.get('/health', async (_req, res) => {
     try {
@@ -87,6 +85,13 @@ app.use('/api/*', (req, res) => {
         success: false,
         message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
     });
+});
+// Fallback for non-API routes to serve index.html (Next.js routing)
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+        return next();
+    }
+    res.sendFile(path_1.default.join(__dirname, '../public/index.html'));
 });
 // Global Error Handler
 app.use((err, req, res, next) => {
