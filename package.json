@@ -6,12 +6,18 @@
   "scripts": {
     "start": "node server.js",
     "build": "cd backend && npm install && npx prisma generate",
-    "postinstall": "cd backend && npm install && npx prisma generate"
+    "postinstall": "cd backend && npm install && npx prisma generate",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
     "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.0"
   }
 }
