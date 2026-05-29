@@ -1,7 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// Strip surrounding quotes that Hostinger hPanel may include when reading .env values
+const rawDbUrl = process.env.DATABASE_URL || '';
+const databaseUrl = rawDbUrl.replace(/^["']|["']$/g, '');
+
+const prisma = new PrismaClient({
+  datasources: { db: { url: databaseUrl } },
+});
 
 async function main() {
   console.log('🚀 Iniciando seed do banco de dados J&L Autos...');
