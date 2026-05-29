@@ -3,8 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteBooking = exports.updateBooking = exports.createBooking = exports.getBookingById = exports.getBookings = void 0;
+exports.updateBookingStatus = exports.deleteBooking = exports.updateBooking = exports.createBooking = exports.getBookingById = exports.getBookings = void 0;
 const db_1 = __importDefault(require("../config/db"));
+const smsService_1 = require("../services/smsService");
 // GET /bookings - List bookings (admin: all, user: own)
 const getBookings = async (req, res) => {
     const user = req.user;
@@ -206,4 +207,53 @@ const deleteBooking = async (req, res) => {
     }
 };
 exports.deleteBooking = deleteBooking;
+// PATCH /bookings/:id/status - Update booking status and notify via SMS
+const updateBookingStatus = async (req, res) => {
+    const { id } = req.params;
+    const user = req.user;
+    const { status } = req.body;
+    try {
+        const booking = await db_1.default.booking.findUnique({
+            where: { id },
+            include: { user: true }
+        });
+        if (!booking)
+            return res.status(404).json({ success: false, message: 'Booking not found.' });
+        // Validate status
+        const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
+        if (!status || !validStatuses.includes(status)) {
+            return res.status(400).json({ success: false, message: 'Valid status is required.' });
+        }
+        const updated = await db_1.default.booking.update({ where: { id }, data: { status } });
+        let smsSent = false;
+        let smsLog = null;
+        if (['confirmed', 'cancelled'].includes(status) && booking.user.phone) {
+            const smsStatus = status === 'confirmed' ? 'CONFIRMED' : 'CANCELLED';
+            try {
+                smsSent = await (0, smsService_1.sendBookingStatusSMSToCustomer)({
+                    bookingId: booking.id,
+                    customerPhone: booking.user.phone,
+                    status: smsStatus
+                });
+                smsLog = smsSent ? `SMS sent for status ${status}` : `SMS mock dispatch for ${status}`;
+            }
+            catch (err) {
+                smsLog = err.message;
+            }
+        }
+        await db_1.default.activityLog.create({
+            data: {
+                action: `UPDATE_BOOKING_STATUS_${status.toUpperCase()}`,
+                entityType: 'Booking',
+                entityId: id,
+                performedBy: user.id,
+            },
+        });
+        return res.json({ success: true, message: 'Booking status updated.', data: updated, smsSent, smsLog });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to update booking status.', error: error.message });
+    }
+};
+exports.updateBookingStatus = updateBookingStatus;
 //# sourceMappingURL=bookingController.js.map

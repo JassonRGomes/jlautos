@@ -43,12 +43,26 @@ const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 const dealershipRoutes_1 = __importDefault(require("./routes/dealershipRoutes"));
 const availabilitySlotRoutes_1 = __importDefault(require("./routes/availabilitySlotRoutes"));
 const settingsRoutes_1 = __importDefault(require("./routes/settingsRoutes"));
+const offerRoutes_1 = __importDefault(require("./routes/offerRoutes"));
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+        const allowed = [
+            process.env.FRONTEND_URL || 'http://localhost:3000',
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://192.168.1.228:3001',
+        ];
+        if (!origin || allowed.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error(`CORS blocked: ${origin}`));
+        }
+    },
     credentials: true,
 }));
 app.use((0, compression_1.default)());
@@ -79,6 +93,7 @@ app.use('/api/uploads', uploadRoutes_1.default);
 app.use('/api/dealerships', dealershipRoutes_1.default);
 app.use('/api/availability-slots', availabilitySlotRoutes_1.default);
 app.use('/api/settings', settingsRoutes_1.default);
+app.use('/api/offers', offerRoutes_1.default);
 // 404 Handler for undefined API routes
 app.use('/api/*', (req, res) => {
     res.status(404).json({
@@ -107,8 +122,18 @@ app.use((err, req, res, next) => {
 const PORT = Number(process.env.PORT) || 5001;
 // Only listen if run directly (not when imported by tests or server.js)
 if (require.main === module) {
-    app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, '0.0.0.0', async () => {
         console.log(`[JL Autos ERP] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+        // Test database connection on startup
+        try {
+            const { default: prisma } = await Promise.resolve().then(() => __importStar(require('./config/db')));
+            await prisma.$queryRaw `SELECT 1`;
+            console.log('[DB] ✅ Database connection established successfully.');
+        }
+        catch (err) {
+            console.error('[DB] ❌ Database connection FAILED:', err.message);
+            console.error('[DB] Check your DATABASE_URL in backend/.env');
+        }
     });
 }
 exports.default = app;
