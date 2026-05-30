@@ -64,14 +64,28 @@ interface BookingSlot {
 
 export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }) {
   const params = useParams();
-  const id = vehicleId || (params?.id as string);
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const nextSearchParams = useSearchParams();
   const { user, settings } = useThemeAuth();
 
+  // Resolve vehicle ID from multiple sources (prop > useParams > URL path > query string)
+  const getIdFromUrl = (): string => {
+    if (typeof window === 'undefined') return '';
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const detailsIdx = pathParts.indexOf('details');
+    if (detailsIdx !== -1 && pathParts[detailsIdx + 1]) return pathParts[detailsIdx + 1];
+    const qId = new URLSearchParams(window.location.search).get('id');
+    if (qId) return qId;
+    return '';
+  };
+
+  const initialId = vehicleId || (params?.id as string) || '';
+
+  const [id, setId] = React.useState<string>(initialId);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
 
   // Media gallery states
   const [activeImageIdx, setActiveImageIdx] = useState(0);
@@ -161,6 +175,11 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
   useEffect(() => {
     setMinDate(new Date().toISOString().split('T')[0]);
+    // On client mount: resolve the vehicle ID from the URL if not already set
+    if (!id) {
+      const fromUrl = getIdFromUrl();
+      if (fromUrl) setId(fromUrl);
+    }
   }, []);
 
   useEffect(() => {
@@ -177,10 +196,10 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
   // Auto-open offer modal if ?tab=offer is in the URL (e.g. from Quick Offer button)
   useEffect(() => {
-    if (searchParams.get('tab') === 'offer') {
+    if (nextSearchParams.get('tab') === 'offer') {
       setOfferOpen(true);
     }
-  }, [searchParams]);
+  }, [nextSearchParams]);
 
   // 3. Toggle Bookmark
   const handleToggleFavorite = async () => {

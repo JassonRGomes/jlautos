@@ -98,12 +98,27 @@ app.use('/api/*', (req, res) => {
   });
 });
 
-// Fallback for non-API routes to serve index.html (Next.js routing)
+// Fallback for non-API routes — auto-detect route folder and serve its index.html
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return next();
   }
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+
+  const publicDir = path.join(__dirname, '../public');
+
+  // Extract the first path segment (e.g. 'details', 'dashboard', 'admin')
+  // and try to serve its corresponding index.html
+  const segments = req.path.split('/').filter(Boolean);
+  if (segments.length > 0) {
+    const routeDir = segments[0];
+    const candidateHtml = path.join(publicDir, routeDir, 'index.html');
+    return res.sendFile(candidateHtml, (err) => {
+      if (err) res.sendFile(path.join(publicDir, 'index.html'));
+    });
+  }
+
+  // Default: serve index.html
+  res.sendFile(path.join(publicDir, 'index.html'));
 });
 
 // Global Error Handler

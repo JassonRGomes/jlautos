@@ -1,16 +1,12 @@
-'use client';
-
 import { Suspense } from 'react';
-import { useParams } from 'next/navigation';
 import VehicleDetailsClient from '@/app/vehicle/VehicleDetailsClient';
 
-export default function VehiclePage() {
-  const params = useParams();
-  const id = params?.id as string;
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
 
-  if (!id) {
-    return <div className="min-h-screen flex items-center justify-center bg-background text-foreground text-xl font-bold">Loading...</div>;
-  }
+export default async function VehiclePage({ params }: PageProps) {
+  const { id } = await params;
 
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background text-foreground text-xl font-bold">Loading...</div>}>

@@ -50,16 +50,30 @@ app.use((0, helmet_1.default)({
 }));
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
+        // Allow requests with no origin (Postman, curl, server-to-server)
+        if (!origin)
+            return callback(null, true);
         const allowed = [
-            process.env.FRONTEND_URL || 'http://localhost:3000',
-            'http://localhost:3000',
-            'http://localhost:3001',
-            'http://192.168.1.228:3001',
+            // Production frontend
+            process.env.FRONTEND_URL || '',
+            'https://lightcyan-shark-136321.hostingersite.com',
+            // Local development — allow any localhost port
+            /^http:\/\/localhost(:\d+)?$/,
+            /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+            // LAN / network development
+            /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
+            /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,
         ];
-        if (!origin || allowed.includes(origin)) {
+        const isAllowed = allowed.some((rule) => {
+            if (typeof rule === 'string')
+                return rule && origin === rule;
+            return rule.test(origin);
+        });
+        if (isAllowed) {
             callback(null, true);
         }
         else {
+            console.warn(`[CORS] Blocked origin: ${origin}`);
             callback(new Error(`CORS blocked: ${origin}`));
         }
     },
@@ -101,12 +115,25 @@ app.use('/api/*', (req, res) => {
         message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
     });
 });
-// Fallback for non-API routes to serve index.html (Next.js routing)
+// Fallback for non-API routes — auto-detect route folder and serve its index.html
 app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/')) {
         return next();
     }
-    res.sendFile(path_1.default.join(__dirname, '../public/index.html'));
+    const publicDir = path_1.default.join(__dirname, '../public');
+    // Extract the first path segment (e.g. 'details', 'dashboard', 'admin')
+    // and try to serve its corresponding index.html
+    const segments = req.path.split('/').filter(Boolean);
+    if (segments.length > 0) {
+        const routeDir = segments[0];
+        const candidateHtml = path_1.default.join(publicDir, routeDir, 'index.html');
+        return res.sendFile(candidateHtml, (err) => {
+            if (err)
+                res.sendFile(path_1.default.join(publicDir, 'index.html'));
+        });
+    }
+    // Default: serve index.html
+    res.sendFile(path_1.default.join(publicDir, 'index.html'));
 });
 // Global Error Handler
 app.use((err, req, res, next) => {
