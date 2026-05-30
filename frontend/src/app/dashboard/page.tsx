@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { useThemeAuth } from '@/context/ThemeAuthContext';
 import { getImageUrl } from '@/utils/image';
@@ -81,11 +81,22 @@ interface Offer {
 
 type TabType = 'wishlist' | 'searches' | 'bookings' | 'offers';
 
-export default function CustomerDashboard() {
+function CustomerDashboardInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loadingAuth } = useThemeAuth();
 
-  const [activeTab, setActiveTab] = useState<TabType>('wishlist');
+  // Read initial tab from URL query param (e.g. /dashboard?tab=bookings)
+  const tabParam = searchParams.get('tab') as TabType | null;
+  const [activeTab, setActiveTab] = useState<TabType>(tabParam && ['wishlist','searches','bookings','offers'].includes(tabParam) ? tabParam : 'wishlist');
+
+  // Sync tab when URL param changes (e.g. after router.push)
+  useEffect(() => {
+    const t = searchParams.get('tab') as TabType | null;
+    if (t && ['wishlist', 'searches', 'bookings', 'offers'].includes(t)) {
+      setActiveTab(t);
+    }
+  }, [searchParams]);
   const [favorites, setFavorites] = useState<Vehicle[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -685,5 +696,20 @@ export default function CustomerDashboard() {
 
       </div>
     </div>
+  );
+}
+
+export default function CustomerDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <div className="text-center space-y-4">
+          <RefreshCw className="animate-spin text-accent mx-auto" size={42} />
+          <h2 className="text-sm font-bold uppercase tracking-wider text-text-muted">Loading Dashboard...</h2>
+        </div>
+      </div>
+    }>
+      <CustomerDashboardInner />
+    </Suspense>
   );
 }

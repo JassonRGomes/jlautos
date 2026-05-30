@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
 import { useThemeAuth } from '@/context/ThemeAuthContext';
@@ -66,6 +66,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
   const params = useParams();
   const id = vehicleId || (params?.id as string);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, settings } = useThemeAuth();
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
@@ -174,6 +175,13 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
     }
   }, [user, id]);
 
+  // Auto-open offer modal if ?tab=offer is in the URL (e.g. from Quick Offer button)
+  useEffect(() => {
+    if (searchParams.get('tab') === 'offer') {
+      setOfferOpen(true);
+    }
+  }, [searchParams]);
+
   // 3. Toggle Bookmark
   const handleToggleFavorite = async () => {
     if (!user) {
@@ -237,6 +245,11 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
       // Reset form
       setBookingDate('');
       setSelectedTimeSlot('');
+
+      // Redirect to dashboard bookings timeline after 2 seconds
+      setTimeout(() => {
+        router.push('/dashboard?tab=bookings');
+      }, 2000);
     } catch (err: any) {
       console.error('Booking error:', err);
       const msg = err.response?.data?.message || 'Conflict: This specific time slot is already reserved.';
@@ -274,7 +287,8 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
       setTimeout(() => {
         setOfferOpen(false);
         setOfferSuccess('');
-      }, 2500);
+        router.push('/dashboard?tab=offers');
+      }, 2000);
     } catch (err: any) {
       console.error('Offer error:', err);
       setOfferError(err.response?.data?.message || 'Failed to submit negotiation proposal.');
