@@ -61,6 +61,41 @@ export const ThemeAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [settings, setSettings] = useState<DealershipSettings | null>(null);
 
+  // 0. Auto-Cache Clearing Routine
+  useEffect(() => {
+    const APP_VERSION = '1.0.1'; // Increment this string to force a cache clear on all clients
+    const currentVersion = localStorage.getItem('jl_app_version');
+    
+    if (currentVersion !== APP_VERSION) {
+      console.log('New system version detected! Purging browser caches...');
+      
+      // Clear HTTP/ServiceWorker Caches
+      if ('caches' in window) {
+        caches.keys().then((names) => {
+          names.forEach(name => caches.delete(name));
+        });
+      }
+
+      // Protect critical tokens
+      const token = localStorage.getItem(TOKEN_KEY);
+      const theme = localStorage.getItem('theme');
+      
+      // Erase local and session storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Restore critical tokens
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      if (theme) localStorage.setItem('theme', theme);
+      
+      // Save new version to prevent loop
+      localStorage.setItem('jl_app_version', APP_VERSION);
+      
+      // Force a hard reload from the server (bypassing local cache)
+      window.location.reload();
+    }
+  }, []);
+
   // 1. Theme handler
   useEffect(() => {
     // Check local storage or system preferences
