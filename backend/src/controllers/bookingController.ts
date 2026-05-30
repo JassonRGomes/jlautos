@@ -41,6 +41,24 @@ export const getBookings = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
+// GET /api/bookings/my - Loads proposals submitted by the logged-in customer
+export const getMyBookings = async (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        vehicle: true,
+      },
+    });
+
+    return res.json({ success: true, data: bookings });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch your bookings.', error: error.message });
+  }
+};
+
 // GET /bookings/:id - Single booking detail
 export const getBookingById = async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
