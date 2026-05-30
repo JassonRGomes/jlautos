@@ -632,8 +632,8 @@ export default function AdministrativePanel() {
                   Admin Master
                 </span>
               </div>
-              <p className="text-xs text-text-muted mt-1 uppercase font-semibold tracking-wider">
-                Authorized Executive Session: {user?.name} &bull; Server: localhost:5001
+              <p className="text-xs text-foreground/50 mt-1 uppercase tracking-wider font-semibold">
+                Authorized Executive Session: {user?.name}
               </p>
             </div>
           </div>
