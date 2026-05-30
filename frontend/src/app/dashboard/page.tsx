@@ -113,20 +113,21 @@ function CustomerDashboardInner() {
       setLoadingData(true);
       setErrorMsg('');
 
+      const ts = Date.now();
       // A. Fetch Favorites
-      const favRes = await axios.get(`${BACKEND_URL}/api/vehicles/favorites`);
+      const favRes = await axios.get(`${BACKEND_URL}/api/vehicles/favorites?_t=${ts}`);
       if (favRes.data && favRes.data.vehicles) {
         setFavorites(favRes.data.vehicles);
       }
 
       // B. Fetch Saved Searches
-      const searchRes = await axios.get(`${BACKEND_URL}/api/vehicles/saved-searches`);
+      const searchRes = await axios.get(`${BACKEND_URL}/api/vehicles/saved-searches?_t=${ts}`);
       if (searchRes.data && searchRes.data.saved) {
         setSavedSearches(searchRes.data.saved);
       }
 
       // C. Fetch Bookings
-      const bookingRes = await axios.get(`${BACKEND_URL}/api/bookings/my`);
+      const bookingRes = await axios.get(`${BACKEND_URL}/api/bookings/my?_t=${ts}`);
       if (bookingRes.data && bookingRes.data.data) {
         const parsed = bookingRes.data.data.map((b: any) => {
           let imgs = [];
@@ -152,7 +153,7 @@ function CustomerDashboardInner() {
       }
 
       // D. Fetch Offers
-      const offerRes = await axios.get(`${BACKEND_URL}/api/offers/my`);
+      const offerRes = await axios.get(`${BACKEND_URL}/api/offers/my?_t=${ts}`);
       if (offerRes.data && offerRes.data.data) {
         setOffers(offerRes.data.data);
       }
