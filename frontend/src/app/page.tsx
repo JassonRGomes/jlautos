@@ -279,7 +279,7 @@ export default function Home() {
 
   const handleCopyLink = () => {
     if (!activeShareVehicle) return;
-    const url = `${origin}/vehicles/${activeShareVehicle.id}`;
+    const url = `${origin}/details/${activeShareVehicle.id}`;
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
@@ -345,7 +345,7 @@ export default function Home() {
 
                       <div className="pt-4 flex flex-wrap gap-4 animate-fade-in">
                         <Link
-                          href={`/vehicles/${vehicle.id}`}
+                          href={`/details/${vehicle.id}`}
                           className="bg-accent hover:bg-accent-hover text-white px-8 py-3.5 rounded-md text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-accent/20"
                         >
                           Explore Details
@@ -563,11 +563,11 @@ export default function Home() {
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
                     if (target.closest('button') || target.closest('a')) return;
-                    router.push(`/vehicles/${vehicle.id}`);
+                    router.push(`/details/${vehicle.id}`);
                   }}
                 >
                   {/* Photo Container with Status Badge overlay */}
-                  <Link href={`/vehicles/${vehicle.id}`} className="relative h-60 w-full overflow-hidden block bg-zinc-950">
+                  <Link href={`/details/${vehicle.id}`} className="relative h-60 w-full overflow-hidden block bg-zinc-950">
                     <Image
                       src={firstImage}
                       alt={`${vehicle.make} ${vehicle.model}`}
@@ -611,7 +611,7 @@ export default function Home() {
                   <div className="p-6 flex-grow flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-start mb-2">
-                        <Link href={`/vehicles/${vehicle.id}`} className="block">
+                        <Link href={`/details/${vehicle.id}`} className="block">
                           <h3 className="text-xl font-bold tracking-tight text-foreground uppercase group-hover:text-accent transition-colors">
                             {vehicle.make} <span className="font-normal text-text-muted">{vehicle.model}</span>
                           </h3>
@@ -634,13 +634,13 @@ export default function Home() {
                       {/* PRIMARY ACTIONS */}
                       <div className="flex gap-2 pt-4">
                         <Link
-                          href={`/vehicles/${vehicle.id}`}
+                          href={`/details/${vehicle.id}`}
                           className="flex-1 bg-foreground text-background text-center py-2.5 rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-accent transition-colors"
                         >
                           View Details
                         </Link>
                         <Link
-                          href={`/vehicles/${vehicle.id}?tab=offer`}
+                          href={`/details/${vehicle.id}?tab=offer`}
                           className="flex-1 border border-card-border text-center py-2.5 rounded-md text-[10px] font-bold uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
                         >
                           Quick Offer
@@ -773,7 +773,7 @@ export default function Home() {
               
               {/* WhatsApp Share */}
               <a
-                href={`https://wa.me/?text=Check%20out%20this%20stunning%20${activeShareVehicle.year}%20${activeShareVehicle.make}%20${activeShareVehicle.model}%20available%20at%20J%26L%20Autos:%20${origin}/vehicles/${activeShareVehicle.id}`}
+                href={`https://wa.me/?text=Check%20out%20this%20stunning%20${activeShareVehicle.year}%20${activeShareVehicle.make}%20${activeShareVehicle.model}%20available%20at%20J%26L%20Autos:%20${origin}/details/${activeShareVehicle.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 p-3 border border-card-border rounded-md hover:bg-emerald-500/10 hover:border-emerald-500 text-sm font-semibold transition-all group"
@@ -784,7 +784,7 @@ export default function Home() {
 
               {/* FB Share */}
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${origin}/vehicles/${activeShareVehicle.id}`}
+                href={`https://www.facebook.com/sharer/sharer.php?u=${origin}/details/${activeShareVehicle.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 p-3 border border-card-border rounded-md hover:bg-blue-600/10 hover:border-blue-600 text-sm font-semibold transition-all group"
@@ -802,7 +802,7 @@ export default function Home() {
                 <input
                   type="text"
                   readOnly
-                  value={`${origin}/vehicles/${activeShareVehicle.id}`}
+                  value={`${origin}/details/${activeShareVehicle.id}`}
                   className="bg-background border border-card-border text-foreground px-3 py-2 rounded-md text-xs flex-grow outline-none truncate font-mono"
                 />
                 <button
