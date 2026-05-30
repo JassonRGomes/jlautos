@@ -62,8 +62,9 @@ interface BookingSlot {
   available: boolean;
 }
 
-export default function VehicleDetailsPage() {
-  const { id } = useParams();
+export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }) {
+  const params = useParams();
+  const id = vehicleId || (params?.id as string);
   const router = useRouter();
   const { user, settings } = useThemeAuth();
 
@@ -87,6 +88,7 @@ export default function VehicleDetailsPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState('');
   const [bookingError, setBookingError] = useState('');
+  const [minDate, setMinDate] = useState('');
 
   // Offer Modal States
   const [offerOpen, setOfferOpen] = useState(false);
@@ -155,6 +157,10 @@ export default function VehicleDetailsPage() {
       console.error('Failed to sync favorite status:', err);
     }
   };
+
+  useEffect(() => {
+    setMinDate(new Date().toISOString().split('T')[0]);
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -681,7 +687,7 @@ export default function VehicleDetailsPage() {
                     required
                     value={bookingDate}
                     onChange={(e) => setBookingDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={minDate}
                     className="w-full bg-background border border-card-border text-foreground px-3.5 py-2.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
