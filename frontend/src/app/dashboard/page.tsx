@@ -673,6 +673,15 @@ function CustomerDashboardInner() {
                                 )}
                               </div>
                             </div>
+                            
+                            <div className="flex justify-end pt-2 mt-2 border-t border-card-border/50">
+                              <Link
+                                href={`/details/${offer.vehicleId}`}
+                                className="text-xs text-accent hover:text-accent-hover font-bold uppercase tracking-wider flex items-center gap-1"
+                              >
+                                View Details <ChevronRight size={14} />
+                              </Link>
+                            </div>
                           </div>
 
                         </div>
