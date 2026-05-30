@@ -27,7 +27,10 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001');
+const BACKEND_URL =
+  (process.env.NEXT_PUBLIC_BACKEND_URL ||
+    (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001')
+  ).replace(/\/$/, '');
 
 interface Vehicle {
   id: string;

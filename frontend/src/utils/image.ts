@@ -1,4 +1,7 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001');
+const BACKEND_URL =
+  (process.env.NEXT_PUBLIC_BACKEND_URL ||
+    (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001')
+  ).replace(/\/$/, '');
 
 /**
  * Resolves an image URL to a full URL if it is a relative upload path,

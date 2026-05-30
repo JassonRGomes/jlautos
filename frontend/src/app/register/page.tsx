@@ -7,7 +7,10 @@ import axios from 'axios';
 import { useThemeAuth } from '@/context/ThemeAuthContext';
 import { Lock, Mail, User, Phone, ArrowRight, AlertCircle } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001');
+const BACKEND_URL =
+  (process.env.NEXT_PUBLIC_BACKEND_URL ||
+    (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001')
+  ).replace(/\/$/, '');
 
 export default function Register() {
   const { loginUser } = useThemeAuth();
