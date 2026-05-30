@@ -128,13 +128,25 @@ function CustomerDashboardInner() {
       // C. Fetch Bookings
       const bookingRes = await axios.get(`${BACKEND_URL}/api/bookings/my`);
       if (bookingRes.data && bookingRes.data.data) {
-        // Parse vehicle images if returned as string
         const parsed = bookingRes.data.data.map((b: any) => {
           let imgs = [];
           if (typeof b.vehicle.images === 'string') {
             try { imgs = JSON.parse(b.vehicle.images); } catch (e) { imgs = [b.vehicle.images]; }
           } else { imgs = b.vehicle.images; }
-          return { ...b, vehicle: { ...b.vehicle, images: imgs } };
+          
+          let eventType = 'VISIT';
+          if (b.notes && b.notes.includes('Event type: TEST_DRIVE')) {
+            eventType = 'TEST_DRIVE';
+          }
+          
+          return { 
+            ...b, 
+            date: b.bookingDate, 
+            timeSlot: b.bookingTime,
+            eventType: eventType,
+            status: b.status ? b.status.toUpperCase() : 'PENDING',
+            vehicle: { ...b.vehicle, images: imgs } 
+          };
         });
         setBookings(parsed);
       }
