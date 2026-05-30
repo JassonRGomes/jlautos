@@ -264,11 +264,14 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
       setBookingError('');
       setBookingSuccess('');
 
+      const token = localStorage.getItem('jl_auth_token');
       const res = await axios.post(`${BACKEND_URL}/api/bookings`, {
         vehicleId: id,
         bookingDate,
         bookingTime: selectedTimeSlot,
         notes: `Event type: ${eventType}`,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       setBookingSuccess(
