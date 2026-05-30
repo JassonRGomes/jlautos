@@ -125,8 +125,20 @@ router.put('/', authenticateJWT, requireAdmin, async (req: Request, res: Respons
         },
       });
       return res.status(200).json({ success: true, data: updated });
+    } else {
+      const created = await prisma.dealership.create({
+        data: {
+          name: 'J&L Autos',
+          status: 'ACTIVE',
+          address,
+          phone,
+          whatsappNumber,
+          logoUrl,
+          operatingHours: operatingHours ? JSON.stringify(operatingHours) : null,
+        },
+      });
+      return res.status(201).json({ success: true, data: created });
     }
-    return res.status(404).json({ success: false, message: 'Active dealership not found.' });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Failed to update settings.', error: error.message });
   }

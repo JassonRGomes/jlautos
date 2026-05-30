@@ -127,9 +127,9 @@ function CustomerDashboardInner() {
 
       // C. Fetch Bookings
       const bookingRes = await axios.get(`${BACKEND_URL}/api/bookings/my`);
-      if (bookingRes.data && bookingRes.data.bookings) {
+      if (bookingRes.data && bookingRes.data.data) {
         // Parse vehicle images if returned as string
-        const parsed = bookingRes.data.bookings.map((b: any) => {
+        const parsed = bookingRes.data.data.map((b: any) => {
           let imgs = [];
           if (typeof b.vehicle.images === 'string') {
             try { imgs = JSON.parse(b.vehicle.images); } catch (e) { imgs = [b.vehicle.images]; }
@@ -141,8 +141,8 @@ function CustomerDashboardInner() {
 
       // D. Fetch Offers
       const offerRes = await axios.get(`${BACKEND_URL}/api/offers/my`);
-      if (offerRes.data && offerRes.data.offers) {
-        setOffers(offerRes.data.offers);
+      if (offerRes.data && offerRes.data.data) {
+        setOffers(offerRes.data.data);
       }
 
     } catch (err: any) {

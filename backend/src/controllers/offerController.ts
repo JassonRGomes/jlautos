@@ -23,7 +23,7 @@ export const submitOffer = async (req: AuthenticatedRequest, res: Response) => {
         status: 'UNDER_REVIEW',
       },
       include: {
-        vehicle: { select: { make: true, model: true, year: true, price: true } },
+        vehicle: true,
       },
     });
 
@@ -49,7 +49,7 @@ export const getOffersManager = async (req: AuthenticatedRequest, res: Response)
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, name: true, email: true, phone: true } },
-        vehicle: { select: { id: true, make: true, model: true, year: true, price: true } },
+        vehicle: true,
       },
     });
 
@@ -67,7 +67,7 @@ export const getCustomerOffers = async (req: AuthenticatedRequest, res: Response
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
       include: {
-        vehicle: { select: { id: true, make: true, model: true, year: true, price: true, images: true } },
+        vehicle: true,
       },
     });
 

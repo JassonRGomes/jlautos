@@ -25,7 +25,7 @@ export const getBookings = async (req: AuthenticatedRequest, res: Response) => {
         orderBy: { createdAt: 'desc' },
         include: {
           user: { select: { id: true, name: true, email: true, phone: true } },
-          vehicle: { select: { id: true, make: true, model: true, year: true, color: true, images: true } },
+          vehicle: true,
         },
       }),
       prisma.booking.count({ where }),
@@ -50,7 +50,7 @@ export const getBookingById = async (req: AuthenticatedRequest, res: Response) =
       where: { id },
       include: {
         user: { select: { id: true, name: true, email: true, phone: true } },
-        vehicle: { select: { id: true, make: true, model: true, year: true, color: true, price: true, images: true } },
+        vehicle: true,
       },
     });
 
@@ -111,7 +111,7 @@ export const createBooking = async (req: AuthenticatedRequest, res: Response) =>
         status: 'pending',
       },
       include: {
-        vehicle: { select: { make: true, model: true, year: true } },
+        vehicle: true,
       },
     });
 

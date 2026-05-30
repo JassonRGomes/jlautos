@@ -24,7 +24,7 @@ export const getTestDrives = async (req: AuthenticatedRequest, res: Response) =>
         orderBy: { createdAt: 'desc' },
         include: {
           user: { select: { id: true, name: true, email: true, phone: true } },
-          vehicle: { select: { id: true, make: true, model: true, year: true, color: true, images: true } },
+          vehicle: true,
           salesRep: { select: { id: true, name: true, email: true } },
         },
       }),
@@ -50,7 +50,7 @@ export const getTestDriveById = async (req: AuthenticatedRequest, res: Response)
       where: { id },
       include: {
         user: { select: { id: true, name: true, email: true, phone: true } },
-        vehicle: { select: { id: true, make: true, model: true, year: true, color: true, price: true, images: true } },
+        vehicle: true,
         salesRep: { select: { id: true, name: true, email: true } },
       },
     });
@@ -113,7 +113,7 @@ export const createTestDrive = async (req: AuthenticatedRequest, res: Response) 
         status: 'scheduled',
       },
       include: {
-        vehicle: { select: { make: true, model: true, year: true } },
+        vehicle: true,
       },
     });
 
