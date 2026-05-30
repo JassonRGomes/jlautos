@@ -83,6 +83,25 @@ export const getBookingById = async (req: AuthenticatedRequest, res: Response) =
   }
 };
 
+// GET /api/bookings/booked-slots/:vehicleId/:date
+export const getBookedSlots = async (req: Request, res: Response) => {
+  const { vehicleId, date } = req.params;
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        vehicleId,
+        bookingDate: new Date(date),
+        status: { in: ['pending', 'confirmed'] },
+      },
+      select: { bookingTime: true },
+    });
+    const bookedSlots = bookings.map((b) => b.bookingTime);
+    return res.json({ success: true, data: bookedSlots });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch booked slots.', error: error.message });
+  }
+};
+
 // POST /bookings - Create new booking
 export const createBooking = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;

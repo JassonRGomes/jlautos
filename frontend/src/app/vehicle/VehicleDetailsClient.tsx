@@ -100,6 +100,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
   const [eventType, setEventType] = useState<'VISIT' | 'TEST_DRIVE'>('VISIT');
   const [bookingDate, setBookingDate] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState('');
   const [bookingError, setBookingError] = useState('');
@@ -193,6 +194,16 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
       checkFavoriteStatus();
     }
   }, [user, id]);
+
+  useEffect(() => {
+    if (id && bookingDate) {
+      axios.get(`${BACKEND_URL}/api/bookings/booked-slots/${id}/${bookingDate}`)
+        .then(res => setBookedSlots(res.data.data || []))
+        .catch(err => console.error('Failed to fetch booked slots:', err));
+    } else {
+      setBookedSlots([]);
+    }
+  }, [id, bookingDate]);
 
   // Auto-open offer modal if ?tab=offer is in the URL (e.g. from Quick Offer button)
   useEffect(() => {
@@ -737,15 +748,19 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
                 <div className="grid grid-cols-2 gap-2">
                   {availableSlots.map((slot) => {
                     const active = selectedTimeSlot === slot;
+                    const isBooked = bookedSlots.includes(slot);
                     return (
                       <button
                         key={slot}
                         type="button"
+                        disabled={isBooked}
                         onClick={() => setSelectedTimeSlot(slot)}
                         className={`py-2 px-1 text-center text-xs font-semibold rounded border transition-all ${
                           active
                             ? 'bg-accent/10 border-accent text-accent'
-                            : 'bg-background border-card-border hover:border-zinc-500 text-foreground'
+                            : isBooked
+                              ? 'bg-card border-card-border opacity-20 cursor-not-allowed line-through'
+                              : 'bg-background border-card-border hover:border-zinc-500 text-foreground'
                         }`}
                       >
                         {slot}

@@ -7,12 +7,16 @@ import {
   deleteBooking,
   updateBookingStatus,
   getMyBookings,
+  getBookedSlots,
 } from '../controllers/bookingController';
 import { authenticateJWT, requireAdmin } from '../middlewares/auth';
 
 const router = Router();
 
-// All booking routes require authentication
+// Public route to fetch unavailable slots
+router.get('/booked-slots/:vehicleId/:date', getBookedSlots);
+
+// All other booking routes require authentication
 router.use(authenticateJWT);
 
 router.get('/my', getMyBookings);
