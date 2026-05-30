@@ -270,7 +270,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
       // Redirect to dashboard bookings timeline after 2 seconds
       setTimeout(() => {
-        router.push('/dashboard?tab=bookings');
+        window.location.href = '/dashboard?tab=bookings';
       }, 2000);
     } catch (err: any) {
       console.error('Booking error:', err);
@@ -310,9 +310,8 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
         (res.data.data ? 'Acquisition proposal submitted for evaluation.' : 'Proposal received.')
       );
       setTimeout(() => {
-        setOfferOpen(false);
-        setOfferSuccess('');
-        router.push('/dashboard?tab=offers');
+        setOfferAmount('');
+        window.location.href = '/dashboard?tab=offers';
       }, 2000);
     } catch (err: any) {
       console.error('Offer error:', err);

@@ -200,8 +200,10 @@ export default function AdministrativePanel() {
       setErrorMsg('');
       setSuccessMsg('');
 
+      const ts = Date.now();
+
       // A. Sync Inventory
-      const invRes = await axios.get(`${BACKEND_URL}/api/vehicles`);
+      const invRes = await axios.get(`${BACKEND_URL}/api/vehicles?_t=${ts}`);
       if (invRes.data && invRes.data.vehicles) {
         // Parse images if returned as string
         const parsed = invRes.data.vehicles.map((v: any) => {
@@ -215,7 +217,7 @@ export default function AdministrativePanel() {
       }
 
       // B. Sync Bookings
-      const bookRes = await axios.get(`${BACKEND_URL}/api/bookings/ledger`);
+      const bookRes = await axios.get(`${BACKEND_URL}/api/bookings/ledger?_t=${ts}`);
       const bookingsRaw = bookRes.data?.bookings || bookRes.data?.ledger || bookRes.data?.data;
       if (bookingsRaw) {
         const parsedBookings = bookingsRaw.map((b: any) => {
@@ -231,7 +233,7 @@ export default function AdministrativePanel() {
       }
 
       // C. Sync Offers
-      const offerRes = await axios.get(`${BACKEND_URL}/api/offers/manager`);
+      const offerRes = await axios.get(`${BACKEND_URL}/api/offers/manager?_t=${ts}`);
       const offersRaw = offerRes.data?.offers || offerRes.data?.data;
       if (offersRaw) {
         const parsedOffers = offersRaw.map((o: any) => {
@@ -247,7 +249,7 @@ export default function AdministrativePanel() {
       }
 
       // D. Sync Customers Directories
-      const custRes = await axios.get(`${BACKEND_URL}/api/settings/customers`);
+      const custRes = await axios.get(`${BACKEND_URL}/api/settings/customers?_t=${ts}`);
       if (custRes.data && custRes.data.registry) {
         setCustomers(custRes.data.registry);
       }
