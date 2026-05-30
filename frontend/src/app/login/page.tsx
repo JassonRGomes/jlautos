@@ -29,7 +29,8 @@ export default function Login() {
     try {
       const res = await axios.post(`${BACKEND_URL}/api/auth/login`, { email, password });
       
-      if (res.data.user) {
+      if (res.data.user && res.data.token) {
+        localStorage.setItem('jl_auth_token', res.data.token);
         loginUser(res.data.user);
         
         // Redirect based on role

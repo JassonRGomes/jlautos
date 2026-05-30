@@ -35,9 +35,10 @@ export default function Register() {
         password,
       });
 
-      if (res.data.user) {
+      if (res.data.user && res.data.token) {
+        localStorage.setItem('jl_auth_token', res.data.token);
         loginUser(res.data.user);
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
       } else {
         setError('Registration failed: Invalid response from concierge.');
       }
