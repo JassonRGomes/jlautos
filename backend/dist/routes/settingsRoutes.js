@@ -33,17 +33,24 @@ router.get('/', async (_req, res) => {
                 },
             });
         }
+        let operatingHoursParsed = {
+            weekdays: 'Mon–Fri: 9:00 AM – 6:00 PM',
+            saturday: 'Sat: 10:00 AM – 4:00 PM',
+            sunday: 'Closed',
+        };
+        if (dealership.operatingHours) {
+            try {
+                operatingHoursParsed = JSON.parse(dealership.operatingHours);
+            }
+            catch (e) { }
+        }
         return res.status(200).json({
             settings: {
-                address: [dealership.address, dealership.city, dealership.state].filter(Boolean).join(', '),
+                address: dealership.address || [dealership.city, dealership.state].filter(Boolean).join(', ') || 'J&L Autos',
                 phone: dealership.phone || '',
-                whatsappNumber: dealership.phone || '',
-                operatingHours: {
-                    weekdays: 'Mon–Fri: 9:00 AM – 6:00 PM',
-                    saturday: 'Sat: 10:00 AM – 4:00 PM',
-                    sunday: 'Closed',
-                },
-                logoUrl: null,
+                whatsappNumber: dealership.whatsappNumber || dealership.phone || '',
+                operatingHours: operatingHoursParsed,
+                logoUrl: dealership.logoUrl || null,
                 name: dealership.name,
                 email: dealership.email,
             },
@@ -103,13 +110,19 @@ router.post('/newsletter', auth_1.authenticateJWT, auth_1.requireAdmin, async (r
 });
 // PUT /api/settings/ — Updates active dealership settings
 router.put('/', auth_1.authenticateJWT, auth_1.requireAdmin, async (req, res) => {
-    const { address, phone } = req.body;
+    const { address, phone, whatsappNumber, logoUrl, operatingHours } = req.body;
     try {
         const dealership = await db_1.default.dealership.findFirst({ where: { status: 'ACTIVE' } });
         if (dealership) {
             const updated = await db_1.default.dealership.update({
                 where: { id: dealership.id },
-                data: { address, phone },
+                data: {
+                    address,
+                    phone,
+                    whatsappNumber,
+                    logoUrl,
+                    operatingHours: operatingHours ? JSON.stringify(operatingHours) : null,
+                },
             });
             return res.status(200).json({ success: true, data: updated });
         }
