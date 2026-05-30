@@ -63,10 +63,10 @@ interface Booking {
   id: string;
   vehicleId: string;
   vehicle: Vehicle;
-  date: string;
-  timeSlot: string;
-  eventType: 'VISIT' | 'TEST_DRIVE';
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELED';
+  bookingDate: string;
+  bookingTime: string;
+  notes?: string;
+  status: 'pending' | 'confirmed' | 'cancelled';
   createdAt: string;
 }
 
@@ -552,8 +552,8 @@ function CustomerDashboardInner() {
                           
                           {/* Sync Dot indicator */}
                           <div className={`absolute -left-[9px] top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-4 bg-background transition-colors shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
-                            booking.status === 'CONFIRMED' ? 'border-emerald-500' :
-                            booking.status === 'CANCELED' ? 'border-red-500' :
+                            booking.status === 'confirmed' ? 'border-emerald-500' :
+                            booking.status === 'cancelled' ? 'border-red-500' :
                             'border-blue-500'
                           }`} />
 
@@ -575,16 +575,16 @@ function CustomerDashboardInner() {
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-text-muted mt-1.5 font-medium">
                                   <span className="flex items-center gap-1.5 bg-background px-2 py-1 rounded border border-card-border">
                                     <Calendar size={12} className="text-accent" />
-                                    {new Date(booking.date).toLocaleDateString('en-US', {
+                                    {new Date(booking.bookingDate).toLocaleDateString('en-US', {
                                       weekday: 'short', month: 'short', day: 'numeric',
                                     })}
                                   </span>
                                   <span className="flex items-center gap-1.5 bg-background px-2 py-1 rounded border border-card-border">
                                     <Clock size={12} className="text-zinc-400" />
-                                    {booking.timeSlot}
+                                    {booking.bookingTime}
                                   </span>
                                   <span className="font-bold text-accent uppercase tracking-widest text-[9px] bg-accent/10 px-2 py-1 border border-accent/20 rounded">
-                                    {booking.eventType === 'VISIT' ? 'Private View' : 'VIP Test Drive'}
+                                    {booking.notes?.includes('TEST_DRIVE') ? 'VIP Test Drive' : 'Private View'}
                                   </span>
                                 </div>
                               </div>
@@ -592,20 +592,19 @@ function CustomerDashboardInner() {
 
                             <div className="flex items-center gap-4 flex-shrink-0 border-t md:border-t-0 pt-4 md:pt-0 border-card-border/50">
                               <div>
-                                {booking.status === 'PENDING' && (
+                                {booking.status === 'pending' && (
                                   <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-md shadow-sm">
                                     PENDING SYNC
                                   </span>
                                 )}
-                                {booking.status === 'CONFIRMED' && (
+                                {booking.status === 'confirmed' && (
                                   <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-md shadow-sm">
-
                                     CONFIRMED VIP
                                   </span>
                                 )}
-                                {booking.status === 'CANCELED' && (
+                                {booking.status === 'cancelled' && (
                                   <span className="px-3.5 py-1 text-[9px] font-bold tracking-widest bg-red-500/10 text-red-500 border border-red-500/20 rounded">
-                                    CANCELED
+                                    CANCELLED
                                   </span>
                                 )}
                               </div>
@@ -642,52 +641,16 @@ function CustomerDashboardInner() {
 
             {/* TAB D: PROPOSALS PIPELINE */}
             {activeTab === 'offers' && (
-              <div>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {user?.role === 'ADMIN' && offers.length > 0 && (
+                  <div className="mb-4 inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                    <CheckCircle2 size={12} /> Global Database Sync Active
+                  </div>
+                )}
+
                 {offers.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="relative border-l-2 border-card-border/60 ml-4 space-y-6 py-2">
                     {offers.map((offer) => {
-                      const discountPercent = Math.round(((offer.vehicle.price - offer.offerAmount) / offer.vehicle.price) * 100);
-                      const isNegotiatedDown = offer.offerAmount < offer.vehicle.price;
-
-                      return (
-                        <div
-                          key={offer.id}
-                          className="bg-card border border-card-border p-5 rounded-lg space-y-4 shadow-sm"
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-card-border pb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="relative h-10 w-10 flex-shrink-0 bg-zinc-950 border border-card-border rounded overflow-hidden">
-                                <Image
-                                  src={getImageUrl(offer.vehicle.images[0])}
-                                  alt={offer.vehicle.make}
-                                  fill
-                                  sizes="40px"
-                                  className="object-cover"
-                                />
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-sm uppercase text-foreground">
-                                  {offer.vehicle.make} {offer.vehicle.model}
-                                </h4>
-                                <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">
-                                  Original Price: ${Number(offer.vehicle.price).toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="text-left sm:text-right">
-                              <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block">Your Offered Proposal</span>
-                              <strong className="text-base font-black text-foreground block">
-                                ${Number(offer.offerAmount).toLocaleString()}
-                              </strong>
-                            </div>
-                          </div>
-
-                          {/* Progress bar pipeline */}
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                              <span>Submitted</span>
-                              <span>Staff Review</span>
                       const img = offer.vehicle?.images?.[0] ? getImageUrl(offer.vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200') : 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200';
                       return (
                         <div key={offer.id} className="relative pl-8 group">
@@ -741,40 +704,39 @@ function CustomerDashboardInner() {
                                   </span>
                                 )}
                                 {offer.status === 'DECLINED' && (
-                                  <span className="px-3 py-1 text-[9px] font-extrabold tracking-widest bg-red-500/10 text-red-500 border border-red-500/20 rounded">
-                                    DECLINED
+                                  <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-red-500/10 text-red-500 border border-red-500/20 rounded-md shadow-sm">
+                                    PROPOSAL DECLINED
                                   </span>
                                 )}
                               </div>
-                            </div>
-                            
-                            <div className="flex justify-end pt-2 mt-2 border-t border-card-border/50 items-center gap-3">
-                              <Link
-                                href={`/details?id=${offer.vehicleId}`}
-                                className="text-xs text-accent hover:text-accent-hover font-bold uppercase tracking-wider flex items-center gap-1"
-                              >
-                                View Details <ChevronRight size={14} />
-                              </Link>
-                              <button
-                                onClick={(e) => handleDeleteOffer(offer.id, e)}
-                                className="p-2 border border-card-border hover:border-red-500 hover:bg-red-500/10 text-text-muted hover:text-red-500 rounded transition-colors"
-                                title="Cancel Proposal"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  href={`/details?id=${offer.vehicleId}`}
+                                  className="h-8 w-8 flex items-center justify-center bg-card hover:bg-foreground/5 border border-card-border rounded transition-colors text-text-muted hover:text-foreground"
+                                  title="View Vehicle"
+                                >
+                                  <ArrowRight size={16} />
+                                </Link>
+                                <button
+                                  onClick={(e) => handleDeleteOffer(offer.id, e)}
+                                  className="h-8 w-8 flex items-center justify-center bg-card hover:bg-red-500/10 border border-card-border hover:border-red-500/30 rounded transition-colors text-text-muted hover:text-red-500"
+                                  title="Withdraw Proposal"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
                             </div>
                           </div>
-
                         </div>
                       );
                     })}
                   </div>
                 ) : (
                   <div className="text-center py-16 bg-card border border-card-border rounded-xl">
-                    <DollarSign size={40} className="mx-auto text-text-muted mb-4 opacity-40" />
-                    <h3 className="font-bold uppercase tracking-wider text-foreground text-sm">No Offers Transmitted</h3>
+                    <Calendar size={40} className="mx-auto text-text-muted mb-4 opacity-40" />
+                    <h3 className="font-bold uppercase tracking-wider text-foreground text-sm">No Proposals Submitted</h3>
                     <p className="text-xs text-text-muted max-w-xs mx-auto mt-1 leading-relaxed">
-                      Make bespoke pricing proposals on any available car listing to initiate acquisition discussions.
+                      Make an acquisition proposal directly from any active luxury vehicle listing.
                     </p>
                   </div>
                 )}
