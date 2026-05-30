@@ -216,15 +216,34 @@ export default function AdministrativePanel() {
 
       // B. Sync Bookings
       const bookRes = await axios.get(`${BACKEND_URL}/api/bookings/ledger`);
-      const bookingsData = bookRes.data?.bookings || bookRes.data?.ledger;
-      if (bookingsData) {
-        setBookings(bookingsData);
+      const bookingsRaw = bookRes.data?.bookings || bookRes.data?.ledger || bookRes.data?.data;
+      if (bookingsRaw) {
+        const parsedBookings = bookingsRaw.map((b: any) => {
+          let imgs = [];
+          if (b.vehicle && typeof b.vehicle.images === 'string') {
+            try { imgs = JSON.parse(b.vehicle.images); } catch (e) { imgs = [b.vehicle.images]; }
+          } else if (b.vehicle && b.vehicle.images) { 
+            imgs = b.vehicle.images; 
+          }
+          return { ...b, vehicle: b.vehicle ? { ...b.vehicle, images: imgs } : null };
+        });
+        setBookings(parsedBookings);
       }
 
       // C. Sync Offers
       const offerRes = await axios.get(`${BACKEND_URL}/api/offers/manager`);
-      if (offerRes.data && offerRes.data.offers) {
-        setOffers(offerRes.data.offers);
+      const offersRaw = offerRes.data?.offers || offerRes.data?.data;
+      if (offersRaw) {
+        const parsedOffers = offersRaw.map((o: any) => {
+          let imgs = [];
+          if (o.vehicle && typeof o.vehicle.images === 'string') {
+            try { imgs = JSON.parse(o.vehicle.images); } catch (e) { imgs = [o.vehicle.images]; }
+          } else if (o.vehicle && o.vehicle.images) { 
+            imgs = o.vehicle.images; 
+          }
+          return { ...o, vehicle: o.vehicle ? { ...o.vehicle, images: imgs } : null };
+        });
+        setOffers(parsedOffers);
       }
 
       // D. Sync Customers Directories
@@ -1142,7 +1161,7 @@ export default function AdministrativePanel() {
                           {/* Asset Target */}
                           <td className="py-3.5 px-4">
                             <span className="font-semibold text-foreground">
-                              {booking.vehicle.year} {booking.vehicle.make} {booking.vehicle.model}
+                              {booking.vehicle ? `${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}` : 'Vehicle Deleted'}
                             </span>
                           </td>
 
