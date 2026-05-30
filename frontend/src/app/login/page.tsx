@@ -34,9 +34,9 @@ export default function Login() {
         
         // Redirect based on role
         if (res.data.user.role === 'ADMIN') {
-          router.push('/admin');
+          window.location.href = '/admin';
         } else {
-          router.push('/dashboard');
+          window.location.href = '/dashboard';
         }
       } else {
         setError('Login failed: Invalid server response.');
