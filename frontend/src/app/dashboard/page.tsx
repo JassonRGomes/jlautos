@@ -379,7 +379,7 @@ function CustomerDashboardInner() {
             <AlertTriangle size={32} />
             <h3 className="font-bold text-sm uppercase">{errorMsg}</h3>
             <button
-              onClick={fetchDashboardData}
+              onClick={() => fetchDashboardData()}
               className="bg-red-500 text-white px-5 py-2 rounded text-xs font-bold uppercase tracking-wider"
             >
               Retry Sync
