@@ -139,16 +139,13 @@ function CustomerDashboardInner() {
           }
           
           let eventType = 'VISIT';
-          if (b.notes && b.notes.includes('Event type: TEST_DRIVE')) {
+          if (b.notes && b.notes.includes('TEST_DRIVE')) {
             eventType = 'TEST_DRIVE';
           }
           
           return { 
             ...b, 
-            date: b.bookingDate, 
-            timeSlot: b.bookingTime,
-            eventType: eventType,
-            status: b.status ? b.status.toUpperCase() : 'PENDING',
+            status: b.status ? b.status.toLowerCase() : 'pending',
             vehicle: { ...b.vehicle, images: imgs } 
           };
         });
