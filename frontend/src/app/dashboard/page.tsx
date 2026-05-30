@@ -353,10 +353,10 @@ function CustomerDashboardInner() {
                           onClick={(e) => {
                             const target = e.target as HTMLElement;
                             if (target.closest('button') || target.closest('a')) return;
-                            router.push(`/details/${vehicle.id}`);
+                            router.push(`/details?id=${vehicle.id}`);
                           }}
                         >
-                          <Link href={`/details/${vehicle.id}`} className="relative aspect-video block bg-zinc-950 overflow-hidden">
+                          <Link href={`/details?id=${vehicle.id}`} className="relative aspect-video block bg-zinc-950 overflow-hidden">
                             <Image
                               src={img}
                               alt={`${vehicle.make} ${vehicle.model}`}
@@ -387,7 +387,7 @@ function CustomerDashboardInner() {
 
                             <div className="flex items-center gap-2 pt-4 mt-4 border-t border-card-border">
                               <Link
-                                href={`/details/${vehicle.id}`}
+                                href={`/details?id=${vehicle.id}`}
                                 className="flex-grow bg-accent hover:bg-accent-hover text-white text-center py-2.5 rounded text-xs font-bold uppercase tracking-wider transition-colors"
                               >
                                 View Details
@@ -559,7 +559,7 @@ function CustomerDashboardInner() {
                                 )}
                               </div>
                               <Link
-                                href={`/details/${booking.vehicleId}`}
+                                href={`/details?id=${booking.vehicleId}`}
                                 className="text-xs text-accent hover:text-accent-hover font-bold uppercase tracking-wider flex items-center gap-1"
                               >
                                 View Car <ChevronRight size={14} />
@@ -676,7 +676,7 @@ function CustomerDashboardInner() {
                             
                             <div className="flex justify-end pt-2 mt-2 border-t border-card-border/50">
                               <Link
-                                href={`/details/${offer.vehicleId}`}
+                                href={`/details?id=${offer.vehicleId}`}
                                 className="text-xs text-accent hover:text-accent-hover font-bold uppercase tracking-wider flex items-center gap-1"
                               >
                                 View Details <ChevronRight size={14} />
