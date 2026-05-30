@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import axios from 'axios';
 import { useThemeAuth } from '@/context/ThemeAuthContext';
 import { getImageUrl } from '@/utils/image';
@@ -540,7 +540,7 @@ function CustomerDashboardInner() {
                 {bookings.length > 0 ? (
                   <div className="relative border-l border-card-border ml-4 space-y-8 py-2">
                     {bookings.map((booking) => {
-                      const img = getImageUrl(booking.vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200');
+                      const img = booking.vehicle?.images?.[0] ? getImageUrl(booking.vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200') : 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200';
                       return (
                         <div key={booking.id} className="relative pl-8">
                           
@@ -556,7 +556,7 @@ function CustomerDashboardInner() {
                               <div className="relative w-16 h-12 flex-shrink-0 rounded overflow-hidden bg-zinc-950 border border-card-border">
                                 <Image
                                   src={img}
-                                  alt={`${booking.vehicle.make} ${booking.vehicle.model}`}
+                                  alt={booking.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : 'Vehicle Deleted'}
                                   fill
                                   sizes="64px"
                                   className="object-cover"
@@ -564,7 +564,7 @@ function CustomerDashboardInner() {
                               </div>
                               <div>
                                 <h4 className="font-bold text-sm uppercase text-foreground">
-                                  {booking.vehicle.make} {booking.vehicle.model}
+                                  {booking.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : <span className="text-red-500">Vehicle Deleted</span>}
                                 </h4>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted mt-1">
                                   <span className="flex items-center gap-1">
