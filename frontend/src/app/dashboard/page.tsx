@@ -108,10 +108,10 @@ function CustomerDashboardInner() {
   const [errorMsg, setErrorMsg] = useState('');
 
   // 1. Fetch all dashboard pipelines
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (silent = false) => {
     if (!user) return;
     try {
-      setLoadingData(true);
+      if (!silent) setLoadingData(true);
       setErrorMsg('');
 
       const ts = Date.now();
@@ -156,7 +156,14 @@ function CustomerDashboardInner() {
       // D. Fetch Offers
       const offerRes = await axios.get(`${BACKEND_URL}/api/offers/my?_t=${ts}`);
       if (offerRes.data && offerRes.data.data) {
-        setOffers(offerRes.data.data);
+        const parsedOffers = offerRes.data.data.map((o: any) => {
+          let imgs = [];
+          if (typeof o.vehicle.images === 'string') {
+            try { imgs = JSON.parse(o.vehicle.images); } catch (e) { imgs = [o.vehicle.images]; }
+          } else { imgs = o.vehicle.images; }
+          return { ...o, vehicle: { ...o.vehicle, images: imgs } };
+        });
+        setOffers(parsedOffers);
       }
 
     } catch (err: any) {
@@ -298,7 +305,7 @@ function CustomerDashboardInner() {
                 <User size={14} /> Profile
               </Link>
               <button
-                onClick={fetchDashboardData}
+                onClick={() => fetchDashboardData()}
                 className="flex items-center gap-2 bg-card hover:bg-foreground/5 border border-card-border text-foreground px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wider transition-colors"
               >
                 <RefreshCw size={14} className={loadingData ? 'animate-spin' : ''} /> Sync Dashboard
@@ -308,23 +315,22 @@ function CustomerDashboardInner() {
         </header>
 
         {/* SECTION 2: DYNAMIC TABS PANEL BAR */}
-        <div className="flex border-b border-card-border overflow-x-auto gap-2 sm:gap-6 mb-8 scrollbar-thin">
-          
+        <div className="flex overflow-x-auto border-b border-card-border mb-6 no-scrollbar">
           <button
-            onClick={() => setActiveTab('wishlist')}
-            className={`py-4 px-1 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
+            onClick={() => { setActiveTab('wishlist'); fetchDashboardData(true); }}
+            className={`py-4 px-1 mr-8 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
               activeTab === 'wishlist'
                 ? 'border-accent text-accent'
                 : 'border-transparent text-text-muted hover:text-foreground'
             }`}
           >
-            <Heart size={15} />
+            <Heart size={15} className={activeTab === 'wishlist' ? 'fill-current' : ''} />
             <span>Wishlist Collection ({favorites.length})</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('searches')}
-            className={`py-4 px-1 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
+            onClick={() => { setActiveTab('searches'); fetchDashboardData(true); }}
+            className={`py-4 px-1 mr-8 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
               activeTab === 'searches'
                 ? 'border-accent text-accent'
                 : 'border-transparent text-text-muted hover:text-foreground'
@@ -335,8 +341,8 @@ function CustomerDashboardInner() {
           </button>
 
           <button
-            onClick={() => setActiveTab('bookings')}
-            className={`py-4 px-1 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
+            onClick={() => { setActiveTab('bookings'); fetchDashboardData(true); }}
+            className={`py-4 px-1 mr-8 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
               activeTab === 'bookings'
                 ? 'border-accent text-accent'
                 : 'border-transparent text-text-muted hover:text-foreground'
@@ -347,7 +353,7 @@ function CustomerDashboardInner() {
           </button>
 
           <button
-            onClick={() => setActiveTab('offers')}
+            onClick={() => { setActiveTab('offers'); fetchDashboardData(true); }}
             className={`py-4 px-1 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
               activeTab === 'offers'
                 ? 'border-accent text-accent'
@@ -357,7 +363,6 @@ function CustomerDashboardInner() {
             <DollarSign size={15} />
             <span>Proposals Pipeline ({offers.length})</span>
           </button>
-
         </div>
 
         {/* SECTION 3: TAB CONTAINER BODY */}
