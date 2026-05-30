@@ -6,6 +6,24 @@ import { generateExcelReport } from '../utils/excel';
 
 const router = Router();
 
+// GET /api/settings/fix-db — Hotfix to add missing columns to Dealership table if schema is out of sync
+router.get('/fix-db', async (req: Request, res: Response) => {
+  try {
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE \`Dealership\` 
+      ADD COLUMN \`whatsappNumber\` VARCHAR(191) NULL,
+      ADD COLUMN \`logoUrl\` VARCHAR(191) NULL,
+      ADD COLUMN \`operatingHours\` TEXT NULL;
+    `);
+    return res.status(200).send("Database Dealership table fixed successfully!");
+  } catch (error: any) {
+    if (error.message.includes('Duplicate column')) {
+      return res.status(200).send("Columns already exist, database is fine.");
+    }
+    return res.status(500).send("Error fixing database: " + error.message);
+  }
+});
+
 // GET /api/settings — Returns public dealership settings for the frontend
 // Called by ThemeAuthContext on every page load
 router.get('/', async (_req: Request, res: Response) => {

@@ -300,7 +300,11 @@ export default function AdministrativePanel() {
       }
     } catch (err: any) {
       console.error('Failed to save settings:', err);
-      setErrorMsg(err.response?.data?.message || 'Error updating global dealership settings.');
+      setErrorMsg(
+        err.response?.data?.error || 
+        err.response?.data?.message || 
+        'Error updating global dealership settings.'
+      );
     } finally {
       setLoadingData(false);
       setTimeout(() => setSuccessMsg(''), 3000);
