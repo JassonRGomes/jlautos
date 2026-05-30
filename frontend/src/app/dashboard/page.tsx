@@ -172,7 +172,7 @@ function CustomerDashboardInner() {
     } else if (user) {
       fetchDashboardData();
     }
-  }, [user, loadingAuth]);
+  }, [user, loadingAuth, searchParams]);
 
   // 2. Remove bookmark search
   const handleDeleteSearch = async (id: string, e: React.MouseEvent) => {
