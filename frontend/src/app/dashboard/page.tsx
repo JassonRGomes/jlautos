@@ -335,7 +335,12 @@ export default function CustomerDashboard() {
                       return (
                         <div
                           key={vehicle.id}
-                          className="bg-card border border-card-border rounded-lg overflow-hidden flex flex-col justify-between shadow-sm group hover:-translate-y-1 transition-all duration-300"
+                          className="bg-card border border-card-border rounded-lg overflow-hidden flex flex-col justify-between shadow-sm group hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+                          onClick={(e) => {
+                            const target = e.target as HTMLElement;
+                            if (target.closest('button') || target.closest('a')) return;
+                            router.push(`/vehicles/${vehicle.id}`);
+                          }}
                         >
                           <Link href={`/vehicles/${vehicle.id}`} className="relative aspect-video block bg-zinc-950 overflow-hidden">
                             <Image

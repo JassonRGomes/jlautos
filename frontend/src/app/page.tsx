@@ -559,7 +559,12 @@ export default function Home() {
               return (
                 <div
                   key={vehicle.id}
-                  className="group flex flex-col bg-card border border-card-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1"
+                  className="group flex flex-col bg-card border border-card-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest('button') || target.closest('a')) return;
+                    router.push(`/vehicles/${vehicle.id}`);
+                  }}
                 >
                   {/* Photo Container with Status Badge overlay */}
                   <Link href={`/vehicles/${vehicle.id}`} className="relative h-60 w-full overflow-hidden block bg-zinc-950">
