@@ -84,6 +84,7 @@ type TabType = 'wishlist' | 'searches' | 'bookings' | 'offers';
 function CustomerDashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { user, loadingAuth } = useThemeAuth();
 
   // Read initial tab from URL query param (e.g. /dashboard?tab=bookings)
@@ -172,7 +173,7 @@ function CustomerDashboardInner() {
     } else if (user) {
       fetchDashboardData();
     }
-  }, [user, loadingAuth, searchParams]);
+  }, [user, loadingAuth, searchParams, pathname]);
 
   // 2. Remove bookmark search
   const handleDeleteSearch = async (id: string, e: React.MouseEvent) => {
