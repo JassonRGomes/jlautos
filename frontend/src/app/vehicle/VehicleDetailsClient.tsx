@@ -236,12 +236,15 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
       const res = await axios.post(`${BACKEND_URL}/api/bookings`, {
         vehicleId: id,
-        date: bookingDate,
-        timeSlot: selectedTimeSlot,
-        eventType,
+        bookingDate,
+        bookingTime: selectedTimeSlot,
+        notes: `Event type: ${eventType}`,
       });
 
-      setBookingSuccess(res.data.message || 'Concierge schedules booked. Email confirmation sent.');
+      setBookingSuccess(
+        res.data.message ||
+        (res.data.data ? 'Concierge appointment booked. You will be contacted for confirmation.' : 'Concierge schedules booked.')
+      );
       // Reset form
       setBookingDate('');
       setSelectedTimeSlot('');
@@ -283,7 +286,10 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
         offerAmount: value,
       });
 
-      setOfferSuccess(res.data.message || 'Acquisition proposal submitted for evaluation.');
+      setOfferSuccess(
+        res.data.message ||
+        (res.data.data ? 'Acquisition proposal submitted for evaluation.' : 'Proposal received.')
+      );
       setTimeout(() => {
         setOfferOpen(false);
         setOfferSuccess('');

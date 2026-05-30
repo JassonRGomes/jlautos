@@ -8,6 +8,18 @@ axios.defaults.withCredentials = true;
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001')).replace(/\/$/, '');
 
+export const TOKEN_KEY = 'jl_auth_token';
+
+// Inject saved token into every axios request as Authorization header
+// This makes auth work across origins even when cookies are blocked (http↔https cross-origin)
+axios.interceptors.request.use((config) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+  if (token && !config.headers['Authorization']) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
 interface User {
   id: string;
   email: string;
@@ -122,6 +134,7 @@ export const ThemeAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const logoutUser = async () => {
     try {
       await axios.post(`${BACKEND_URL}/api/auth/logout`);
+      localStorage.removeItem(TOKEN_KEY);
       setUser(null);
       window.location.href = '/';
     } catch (err) {

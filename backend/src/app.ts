@@ -26,20 +26,36 @@ app.use(helmet({
 
 app.use(cors({
   origin: (origin, callback) => {
+    // Allow requests with no origin (Postman, curl, server-to-server)
+    if (!origin) return callback(null, true);
+
     const allowed = [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://192.168.1.228:3001',
+      // Production frontend
+      process.env.FRONTEND_URL || '',
+      'https://lightcyan-shark-136321.hostingersite.com',
+      // Local development — allow any localhost port
+      /^http:\/\/localhost(:\d+)?$/,
+      /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+      // LAN / network development
+      /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
+      /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,
     ];
-    if (!origin || allowed.includes(origin)) {
+
+    const isAllowed = allowed.some((rule) => {
+      if (typeof rule === 'string') return rule && origin === rule;
+      return rule.test(origin);
+    });
+
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.warn(`[CORS] Blocked origin: ${origin}`);
       callback(new Error(`CORS blocked: ${origin}`));
     }
   },
   credentials: true,
 }));
+
 
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
