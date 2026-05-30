@@ -345,7 +345,7 @@ export default function Home() {
 
                       <div className="pt-4 flex flex-wrap gap-4 animate-fade-in">
                         <Link
-                          href={`/details?id=${vehicle.id}`} onClick={(e) => { e.preventDefault(); window.location.href = `/details?id=${vehicle.id}`; }}
+                          href={`/details?id=${vehicle.id}`}
                           className="bg-accent hover:bg-accent-hover text-white px-8 py-3.5 rounded-md text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-accent/20"
                         >
                           Explore Details
@@ -563,11 +563,11 @@ export default function Home() {
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
                     if (target.closest('button') || target.closest('a')) return;
-                    window.location.href = `/details?id=${vehicle.id}`;
+                    router.push(`/details?id=${vehicle.id}`);
                   }}
                 >
                   {/* Photo Container with Status Badge overlay */}
-                  <Link href={`/details?id=${vehicle.id}`} onClick={(e) => { e.preventDefault(); window.location.href = `/details?id=${vehicle.id}`; }} className="relative h-60 w-full overflow-hidden block bg-zinc-950">
+                  <Link href={`/details?id=${vehicle.id}`} className="relative h-60 w-full overflow-hidden block bg-zinc-950">
                     <Image
                       src={firstImage}
                       alt={`${vehicle.make} ${vehicle.model}`}
@@ -611,7 +611,7 @@ export default function Home() {
                   <div className="p-6 flex-grow flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-start mb-2">
-                        <Link href={`/details?id=${vehicle.id}`} onClick={(e) => { e.preventDefault(); window.location.href = `/details?id=${vehicle.id}`; }} className="block">
+                        <Link href={`/details?id=${vehicle.id}`} className="block">
                           <h3 className="text-xl font-bold tracking-tight text-foreground uppercase group-hover:text-accent transition-colors">
                             {vehicle.make} <span className="font-normal text-text-muted">{vehicle.model}</span>
                           </h3>
@@ -634,13 +634,13 @@ export default function Home() {
                       {/* PRIMARY ACTIONS */}
                       <div className="flex gap-2 pt-4">
                         <Link
-                          href={`/details?id=${vehicle.id}`} onClick={(e) => { e.preventDefault(); window.location.href = `/details?id=${vehicle.id}`; }}
+                          href={`/details?id=${vehicle.id}`}
                           className="flex-1 bg-foreground text-background text-center py-2.5 rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-accent transition-colors"
                         >
                           View Details
                         </Link>
                         <Link
-                          href={`/details?id=${vehicle.id}&tab=offer`} onClick={(e) => { e.preventDefault(); window.location.href = `/details?id=${vehicle.id}&tab=offer`; }}
+                          href={`/details?id=${vehicle.id}&tab=offer`}
                           className="flex-1 border border-card-border text-center py-2.5 rounded-md text-[10px] font-bold uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
                         >
                           Quick Offer
