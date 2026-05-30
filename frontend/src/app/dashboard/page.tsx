@@ -534,70 +534,72 @@ function CustomerDashboardInner() {
               </div>
             )}
 
-            {/* TAB C: BOOKINGS TIMELINE */}
+            {/* TAB C: BOOKINGS TIMELINE (Redesigned for Auto-Sync) */}
             {activeTab === 'bookings' && (
-              <div>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {user?.role === 'ADMIN' && bookings.length > 0 && (
+                  <div className="mb-4 inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                    <CheckCircle2 size={12} /> Global Database Sync Active
+                  </div>
+                )}
+                
                 {bookings.length > 0 ? (
-                  <div className="relative border-l border-card-border ml-4 space-y-8 py-2">
+                  <div className="relative border-l-2 border-card-border/60 ml-4 space-y-6 py-2">
                     {bookings.map((booking) => {
                       const img = booking.vehicle?.images?.[0] ? getImageUrl(booking.vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200') : 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200';
                       return (
-                        <div key={booking.id} className="relative pl-8">
+                        <div key={booking.id} className="relative pl-8 group">
                           
-                          {/* Dot indicator */}
-                          <div className={`absolute -left-1.5 top-1 h-3 w-3 rounded-full border-2 bg-background transition-colors ${
-                            booking.status === 'CONFIRMED' ? 'border-emerald-500 bg-emerald-500' :
-                            booking.status === 'CANCELED' ? 'border-red-500 bg-red-500' :
-                            'border-blue-500 bg-blue-500'
+                          {/* Sync Dot indicator */}
+                          <div className={`absolute -left-[9px] top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-4 bg-background transition-colors shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
+                            booking.status === 'CONFIRMED' ? 'border-emerald-500' :
+                            booking.status === 'CANCELED' ? 'border-red-500' :
+                            'border-blue-500'
                           }`} />
 
-                          <div className="bg-card border border-card-border p-5 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                              <div className="relative w-16 h-12 flex-shrink-0 rounded overflow-hidden bg-zinc-950 border border-card-border">
+                          <div className="bg-card hover:bg-card-hover border border-card-border p-5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all duration-300 shadow-sm hover:shadow-md">
+                            <div className="flex items-center gap-5">
+                              <div className="relative w-20 h-14 flex-shrink-0 rounded-md overflow-hidden bg-zinc-950 border border-card-border shadow-inner">
                                 <Image
                                   src={img}
                                   alt={booking.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : 'Vehicle Deleted'}
                                   fill
-                                  sizes="64px"
-                                  className="object-cover"
+                                  sizes="80px"
+                                  className="object-cover group-hover:scale-110 transition-transform duration-500"
                                 />
                               </div>
                               <div>
-                                <h4 className="font-bold text-sm uppercase text-foreground">
+                                <h4 className="font-black text-base uppercase text-foreground tracking-tight">
                                   {booking.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : <span className="text-red-500">Vehicle Deleted</span>}
                                 </h4>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted mt-1">
-                                  <span className="flex items-center gap-1">
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-text-muted mt-1.5 font-medium">
+                                  <span className="flex items-center gap-1.5 bg-background px-2 py-1 rounded border border-card-border">
                                     <Calendar size={12} className="text-accent" />
                                     {new Date(booking.date).toLocaleDateString('en-US', {
-                                      weekday: 'short',
-                                      year: 'numeric',
-                                      month: 'short',
-                                      day: 'numeric',
+                                      weekday: 'short', month: 'short', day: 'numeric',
                                     })}
                                   </span>
-                                  <span>&bull;</span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock size={12} className="text-zinc-500" />
+                                  <span className="flex items-center gap-1.5 bg-background px-2 py-1 rounded border border-card-border">
+                                    <Clock size={12} className="text-zinc-400" />
                                     {booking.timeSlot}
                                   </span>
-                                  <span>&bull;</span>
-                                  <span className="font-semibold text-accent uppercase tracking-wider text-[9px] bg-accent/5 px-2 py-0.5 border border-accent/15 rounded">
+                                  <span className="font-bold text-accent uppercase tracking-widest text-[9px] bg-accent/10 px-2 py-1 border border-accent/20 rounded">
                                     {booking.eventType === 'VISIT' ? 'Private View' : 'VIP Test Drive'}
                                   </span>
                                 </div>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-4 flex-shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
+                            <div className="flex items-center gap-4 flex-shrink-0 border-t md:border-t-0 pt-4 md:pt-0 border-card-border/50">
                               <div>
                                 {booking.status === 'PENDING' && (
-                                  <span className="px-3.5 py-1 text-[9px] font-bold tracking-widest bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded">
-                                    PENDING STAFF
+                                  <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-md shadow-sm">
+                                    PENDING SYNC
                                   </span>
                                 )}
                                 {booking.status === 'CONFIRMED' && (
-                                  <span className="px-3.5 py-1 text-[9px] font-bold tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded">
+                                  <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-md shadow-sm">
+
                                     CONFIRMED VIP
                                   </span>
                                 )}
@@ -686,39 +688,55 @@ function CustomerDashboardInner() {
                             <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-text-muted">
                               <span>Submitted</span>
                               <span>Staff Review</span>
-                              <span>Resolution</span>
-                            </div>
-                            
-                            <div className="relative h-2 bg-background border border-card-border rounded-full overflow-hidden">
-                              <div
-                                className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
-                                  offer.status === 'ACCEPTED' ? 'w-full bg-emerald-500' :
-                                  offer.status === 'DECLINED' ? 'w-full bg-red-500' :
-                                  'w-2/3 bg-blue-500'
-                                }`}
-                              />
-                            </div>
+                      const img = offer.vehicle?.images?.[0] ? getImageUrl(offer.vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200') : 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200';
+                      return (
+                        <div key={offer.id} className="relative pl-8 group">
+                          
+                          {/* Sync Dot indicator */}
+                          <div className={`absolute -left-[9px] top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-4 bg-background transition-colors shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
+                            offer.status === 'ACCEPTED' ? 'border-emerald-500' :
+                            offer.status === 'DECLINED' ? 'border-red-500' :
+                            'border-amber-500'
+                          }`} />
 
-                            <div className="flex justify-between items-center pt-2">
-                              <div className="flex gap-2">
-                                {isNegotiatedDown && (
-                                  <span className="px-2 py-0.5 bg-blue-500/5 border border-blue-500/10 text-[9px] font-bold text-blue-500 rounded uppercase">
-                                    -{discountPercent}% Target discount
-                                  </span>
-                                )}
-                                <span className="text-[10px] text-text-muted flex items-center gap-1 font-mono">
-                                  ID: {offer.id.slice(0, 8).toUpperCase()}
-                                </span>
+                          <div className="bg-card hover:bg-card-hover border border-card-border p-5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all duration-300 shadow-sm hover:shadow-md">
+                            <div className="flex items-center gap-5">
+                              <div className="relative w-20 h-14 flex-shrink-0 rounded-md overflow-hidden bg-zinc-950 border border-card-border shadow-inner">
+                                <Image
+                                  src={img}
+                                  alt={offer.vehicle ? `${offer.vehicle.make} ${offer.vehicle.model}` : 'Vehicle Deleted'}
+                                  fill
+                                  sizes="80px"
+                                  className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                />
                               </div>
+                              <div>
+                                <h4 className="font-black text-base uppercase text-foreground tracking-tight">
+                                  {offer.vehicle ? `${offer.vehicle.make} ${offer.vehicle.model}` : <span className="text-red-500">Vehicle Deleted</span>}
+                                </h4>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-text-muted mt-1.5 font-medium">
+                                  <span className="flex items-center gap-1.5 bg-background px-2 py-1 rounded border border-card-border">
+                                    <Calendar size={12} className="text-accent" />
+                                    {new Date(offer.createdAt).toLocaleDateString('en-US', {
+                                      weekday: 'short', month: 'short', day: 'numeric'
+                                    })}
+                                  </span>
+                                  <span className="font-bold text-accent uppercase tracking-widest text-[10px] bg-accent/10 px-2 py-1 border border-accent/20 rounded">
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(offer.offerAmount)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
 
+                            <div className="flex items-center gap-4 flex-shrink-0 border-t md:border-t-0 pt-4 md:pt-0 border-card-border/50">
                               <div>
                                 {offer.status === 'UNDER_REVIEW' && (
-                                  <span className="px-3 py-1 text-[9px] font-extrabold tracking-widest bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded">
-                                    UNDER STAFF EVALUATION
+                                  <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-md shadow-sm">
+                                    SYNC REVIEW
                                   </span>
                                 )}
                                 {offer.status === 'ACCEPTED' && (
-                                  <span className="px-3 py-1 text-[9px] font-extrabold tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded">
+                                  <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-md shadow-sm">
                                     PROPOSAL ACCEPTED & RESERVED
                                   </span>
                                 )}

@@ -41,12 +41,14 @@ export const getBookings = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-// GET /api/bookings/my - Loads proposals submitted by the logged-in customer
+// GET /api/bookings/my - Loads proposals submitted by the logged-in customer (or all if ADMIN)
 export const getMyBookings = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
   try {
+    const whereClause = user.role === 'ADMIN' ? {} : { userId: user.id };
+    
     const bookings = await prisma.booking.findMany({
-      where: { userId: user.id },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         vehicle: true,

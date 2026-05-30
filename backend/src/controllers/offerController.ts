@@ -59,12 +59,14 @@ export const getOffersManager = async (req: AuthenticatedRequest, res: Response)
   }
 };
 
-// GET /api/offers/my - Loads proposals submitted by the logged-in customer
+// GET /api/offers/my - Loads proposals submitted by the logged-in customer (or all if ADMIN)
 export const getCustomerOffers = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
   try {
+    const whereClause = user.role === 'ADMIN' ? {} : { userId: user.id };
+    
     const offers = await prisma.offer.findMany({
-      where: { userId: user.id },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         vehicle: true,
