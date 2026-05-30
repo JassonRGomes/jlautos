@@ -27,7 +27,7 @@ const getTestDrives = async (req, res) => {
                 orderBy: { createdAt: 'desc' },
                 include: {
                     user: { select: { id: true, name: true, email: true, phone: true } },
-                    vehicle: { select: { id: true, make: true, model: true, year: true, color: true, images: true } },
+                    vehicle: true,
                     salesRep: { select: { id: true, name: true, email: true } },
                 },
             }),
@@ -53,7 +53,7 @@ const getTestDriveById = async (req, res) => {
             where: { id },
             include: {
                 user: { select: { id: true, name: true, email: true, phone: true } },
-                vehicle: { select: { id: true, make: true, model: true, year: true, color: true, price: true, images: true } },
+                vehicle: true,
                 salesRep: { select: { id: true, name: true, email: true } },
             },
         });
@@ -94,13 +94,6 @@ const createTestDrive = async (req, res) => {
         if (conflict) {
             return res.status(409).json({ success: false, message: 'This vehicle already has a test drive scheduled at this date and time.' });
         }
-        // Customer cannot have multiple active test drives for same vehicle
-        const existingActive = await db_1.default.testDrive.findFirst({
-            where: { userId: user.id, vehicleId, status: { in: ['scheduled', 'approved'] } },
-        });
-        if (existingActive) {
-            return res.status(409).json({ success: false, message: 'You already have an active test drive for this vehicle.' });
-        }
         const testDrive = await db_1.default.testDrive.create({
             data: {
                 userId: user.id,
@@ -113,7 +106,7 @@ const createTestDrive = async (req, res) => {
                 status: 'scheduled',
             },
             include: {
-                vehicle: { select: { make: true, model: true, year: true } },
+                vehicle: true,
             },
         });
         await db_1.default.activityLog.create({

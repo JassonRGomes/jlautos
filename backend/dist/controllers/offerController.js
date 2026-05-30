@@ -24,7 +24,7 @@ const submitOffer = async (req, res) => {
                 status: 'UNDER_REVIEW',
             },
             include: {
-                vehicle: { select: { make: true, model: true, year: true, price: true } },
+                vehicle: true,
             },
         });
         await db_1.default.activityLog.create({
@@ -49,7 +49,7 @@ const getOffersManager = async (req, res) => {
             orderBy: { createdAt: 'desc' },
             include: {
                 user: { select: { id: true, name: true, email: true, phone: true } },
-                vehicle: { select: { id: true, make: true, model: true, year: true, price: true } },
+                vehicle: true,
             },
         });
         return res.json({ success: true, data: offers });
@@ -67,7 +67,7 @@ const getCustomerOffers = async (req, res) => {
             where: { userId: user.id },
             orderBy: { createdAt: 'desc' },
             include: {
-                vehicle: { select: { id: true, make: true, model: true, year: true, price: true, images: true } },
+                vehicle: true,
             },
         });
         return res.json({ success: true, data: offers });

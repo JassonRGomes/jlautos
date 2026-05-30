@@ -28,7 +28,7 @@ const getBookings = async (req, res) => {
                 orderBy: { createdAt: 'desc' },
                 include: {
                     user: { select: { id: true, name: true, email: true, phone: true } },
-                    vehicle: { select: { id: true, make: true, model: true, year: true, color: true, images: true } },
+                    vehicle: true,
                 },
             }),
             db_1.default.booking.count({ where }),
@@ -53,7 +53,7 @@ const getBookingById = async (req, res) => {
             where: { id },
             include: {
                 user: { select: { id: true, name: true, email: true, phone: true } },
-                vehicle: { select: { id: true, make: true, model: true, year: true, color: true, price: true, images: true } },
+                vehicle: true,
             },
         });
         if (!booking)
@@ -94,13 +94,6 @@ const createBooking = async (req, res) => {
         if (conflict) {
             return res.status(409).json({ success: false, message: 'This vehicle is already booked at the selected date and time.' });
         }
-        // Prevent user from having multiple active bookings for same vehicle
-        const existingUserBooking = await db_1.default.booking.findFirst({
-            where: { userId: user.id, vehicleId, status: { in: ['pending', 'confirmed'] } },
-        });
-        if (existingUserBooking) {
-            return res.status(409).json({ success: false, message: 'You already have an active booking for this vehicle.' });
-        }
         const booking = await db_1.default.booking.create({
             data: {
                 userId: user.id,
@@ -111,7 +104,7 @@ const createBooking = async (req, res) => {
                 status: 'pending',
             },
             include: {
-                vehicle: { select: { make: true, model: true, year: true } },
+                vehicle: true,
             },
         });
         // Log activity

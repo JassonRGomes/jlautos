@@ -126,7 +126,20 @@ router.put('/', auth_1.authenticateJWT, auth_1.requireAdmin, async (req, res) =>
             });
             return res.status(200).json({ success: true, data: updated });
         }
-        return res.status(404).json({ success: false, message: 'Active dealership not found.' });
+        else {
+            const created = await db_1.default.dealership.create({
+                data: {
+                    name: 'J&L Autos',
+                    status: 'ACTIVE',
+                    address,
+                    phone,
+                    whatsappNumber,
+                    logoUrl,
+                    operatingHours: operatingHours ? JSON.stringify(operatingHours) : null,
+                },
+            });
+            return res.status(201).json({ success: true, data: created });
+        }
     }
     catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to update settings.', error: error.message });
