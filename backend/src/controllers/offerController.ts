@@ -61,14 +61,12 @@ export const getOffersManager = async (req: AuthenticatedRequest, res: Response)
 
 // GET /api/offers/my - Loads proposals submitted by the logged-in customer (or all if ADMIN)
 export const getCustomerOffers = async (req: AuthenticatedRequest, res: Response) => {
-  const user = req.user!;
   try {
-    const whereClause = user.role === 'ADMIN' ? {} : { userId: user.id };
-    
+    // Jasson requested that ALL logged in users can see ALL offers (Global Pipeline for agents)
     const offers = await prisma.offer.findMany({
-      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
+        user: { select: { name: true, email: true, phone: true } },
         vehicle: true,
       },
     });

@@ -43,14 +43,12 @@ export const getBookings = async (req: AuthenticatedRequest, res: Response) => {
 
 // GET /api/bookings/my - Loads proposals submitted by the logged-in customer (or all if ADMIN)
 export const getMyBookings = async (req: AuthenticatedRequest, res: Response) => {
-  const user = req.user!;
   try {
-    const whereClause = user.role === 'ADMIN' ? {} : { userId: user.id };
-    
+    // Jasson requested that ALL logged in users can see ALL bookings (Global Pipeline for agents)
     const bookings = await prisma.booking.findMany({
-      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
+        user: { select: { name: true, email: true, phone: true } },
         vehicle: true,
       },
     });
