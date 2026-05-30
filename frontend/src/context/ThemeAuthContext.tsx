@@ -133,7 +133,10 @@ export const ThemeAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       setLoadingAuth(true);
       const res = await axios.get(`${BACKEND_URL}/api/auth/profile`);
-      if (res.data.user) {
+      if (res.data && res.data.user) {
+        if (res.data.token) {
+          localStorage.setItem(TOKEN_KEY, res.data.token);
+        }
         setUser(res.data.user);
       } else {
         setUser(null);

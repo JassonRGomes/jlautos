@@ -129,7 +129,15 @@ export const getProfile = async (req: AuthenticatedRequest, res: Response) => {
       select: { id: true, email: true, name: true, phone: true, image: true, role: true, createdAt: true },
     });
     if (!user) return res.status(404).json({ message: 'User not found.' });
-    return res.status(200).json({ user });
+    
+    // Generate a fresh token so the frontend can recover it if localStorage was wiped
+    const newToken = jwt.sign(
+      { id: user.id, email: user.email, role: user.role, name: user.name },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    return res.status(200).json({ user, token: newToken });
   } catch (error: any) {
     return res.status(500).json({ message: 'Error fetching profile.', error: error.message });
   }
