@@ -9,17 +9,44 @@ const router = Router();
 // GET /api/settings/fix-db — Hotfix to add missing columns to Dealership table if schema is out of sync
 router.get('/fix-db', async (req: Request, res: Response) => {
   try {
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE \`Dealership\` 
-      ADD COLUMN \`whatsappNumber\` VARCHAR(191) NULL,
-      ADD COLUMN \`logoUrl\` VARCHAR(191) NULL,
-      ADD COLUMN \`operatingHours\` TEXT NULL;
-    `);
-    return res.status(200).send("Database Dealership table fixed successfully!");
-  } catch (error: any) {
-    if (error.message.includes('Duplicate column')) {
-      return res.status(200).send("Columns already exist, database is fine.");
+    // 1. Fix Dealership Table
+    try {
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE \`Dealership\` 
+        ADD COLUMN \`whatsappNumber\` VARCHAR(191) NULL,
+        ADD COLUMN \`logoUrl\` VARCHAR(191) NULL,
+        ADD COLUMN \`operatingHours\` TEXT NULL;
+      `);
+    } catch (e: any) {
+      if (!e.message.includes('Duplicate column')) console.log("Dealership table already has columns or error:", e.message);
     }
+
+    // 2. Create Offer Table if missing
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS \`Offer\` (
+            \`id\` VARCHAR(191) NOT NULL,
+            \`userId\` VARCHAR(191) NOT NULL,
+            \`vehicleId\` VARCHAR(191) NOT NULL,
+            \`offerAmount\` DECIMAL(12, 2) NOT NULL,
+            \`status\` VARCHAR(191) NOT NULL DEFAULT 'UNDER_REVIEW',
+            \`notes\` TEXT NULL,
+            \`createdAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+            \`updatedAt\` DATETIME(3) NOT NULL,
+            PRIMARY KEY (\`id\`),
+            CONSTRAINT \`Offer_userId_fkey\` FOREIGN KEY (\`userId\`) REFERENCES \`User\`(\`id\`) ON DELETE CASCADE ON UPDATE CASCADE,
+            CONSTRAINT \`Offer_vehicleId_fkey\` FOREIGN KEY (\`vehicleId\`) REFERENCES \`Vehicle\`(\`id\`) ON DELETE CASCADE ON UPDATE CASCADE
+        ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+      `);
+    } catch (e: any) {
+      console.log("Error creating Offer table:", e.message);
+    }
+
+    const bookingCount = await prisma.booking.count();
+    const offerCount = await prisma.offer.count();
+
+    return res.status(200).send(`Database fixed successfully! Found ${bookingCount} bookings and ${offerCount} offers in the database.`);
+  } catch (error: any) {
     return res.status(500).send("Error fixing database: " + error.message);
   }
 });

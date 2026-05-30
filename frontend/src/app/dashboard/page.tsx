@@ -132,9 +132,11 @@ function CustomerDashboardInner() {
       if (bookingRes.data && bookingRes.data.data) {
         const parsed = bookingRes.data.data.map((b: any) => {
           let imgs = [];
-          if (typeof b.vehicle.images === 'string') {
+          if (b.vehicle && typeof b.vehicle.images === 'string') {
             try { imgs = JSON.parse(b.vehicle.images); } catch (e) { imgs = [b.vehicle.images]; }
-          } else { imgs = b.vehicle.images; }
+          } else if (b.vehicle && b.vehicle.images) { 
+            imgs = b.vehicle.images; 
+          }
           
           let eventType = 'VISIT';
           if (b.notes && b.notes.includes('Event type: TEST_DRIVE')) {
@@ -158,9 +160,11 @@ function CustomerDashboardInner() {
       if (offerRes.data && offerRes.data.data) {
         const parsedOffers = offerRes.data.data.map((o: any) => {
           let imgs = [];
-          if (typeof o.vehicle.images === 'string') {
+          if (o.vehicle && typeof o.vehicle.images === 'string') {
             try { imgs = JSON.parse(o.vehicle.images); } catch (e) { imgs = [o.vehicle.images]; }
-          } else { imgs = o.vehicle.images; }
+          } else if (o.vehicle && o.vehicle.images) { 
+            imgs = o.vehicle.images; 
+          }
           return { ...o, vehicle: { ...o.vehicle, images: imgs } };
         });
         setOffers(parsedOffers);
