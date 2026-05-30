@@ -1,10 +1,14 @@
-const axios = require('axios');
-async function test() {
-  try {
-    // First login
-    const login = await axios.post('https://lightcyan-shark-136321.hostingersite.com/api/auth/login', {
-      email: 'admin@jlautos.com',
-      password: 'password123' // Wait, I don't know the admin password.
-    });
-  } catch(e) {}
-}
+const https = require('https');
+
+const req = https.request('https://lightcyan-shark-136321.hostingersite.com/api/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' }
+}, (res) => {
+  let data = '';
+  res.on('data', d => data += d);
+  res.on('end', () => {
+    console.log("LOGIN RESPONSE:", data);
+  });
+});
+req.write(JSON.stringify({email: 'admin@jlautos.com', password: 'admin'}));
+req.end();

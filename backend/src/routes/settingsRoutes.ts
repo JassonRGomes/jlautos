@@ -15,7 +15,15 @@ router.get('/fix-db', async (req: Request, res: Response) => {
       ADD COLUMN \`logoUrl\` VARCHAR(191) NULL,
       ADD COLUMN \`operatingHours\` TEXT NULL;
     `);
-    return res.status(200).send("Database Dealership table fixed successfully!");
+    // 3. Output Bookings explicitly for debugging
+    const bookings = await prisma.booking.findMany({});
+    const offers = await prisma.offer.findMany({});
+    
+    return res.json({
+      success: true,
+      message: `Database fixed successfully! Found ${bookings.length} bookings and ${offers.length} offers.`,
+      debug_bookings: bookings
+    });
   } catch (error: any) {
     if (error.message.includes('Duplicate column')) {
       return res.status(200).send("Columns already exist, database is fine.");
