@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (tag) {
-    // @ts-ignore
+    // @ts-expect-error revalidateTag type mismatch in this Next.js version
     revalidateTag(tag);
     return NextResponse.json({ revalidated: true, tag, now: Date.now() });
   }
