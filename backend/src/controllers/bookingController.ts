@@ -189,6 +189,10 @@ export const deleteBooking = async (req: AuthenticatedRequest, res: Response) =>
     const booking = await prisma.booking.findUnique({ where: { id } });
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
 
+    if (user.role === 'CUSTOMER' && booking.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Access denied.' });
+    }
+
     await prisma.booking.delete({ where: { id } });
 
     await prisma.activityLog.create({

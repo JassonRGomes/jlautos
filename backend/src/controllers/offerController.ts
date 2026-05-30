@@ -114,3 +114,27 @@ export const updateOfferStatus = async (req: AuthenticatedRequest, res: Response
     return res.status(500).json({ success: false, message: 'Failed to update offer status.', error: error.message });
   }
 };
+
+// DELETE /offers/:id
+export const deleteOffer = async (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const user = req.user!;
+  try {
+    const offer = await prisma.offer.findUnique({ where: { id } });
+    if (!offer) return res.status(404).json({ success: false, message: 'Offer not found.' });
+
+    if (user.role === 'CUSTOMER' && offer.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Access denied.' });
+    }
+
+    await prisma.offer.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: { action: 'DELETE_OFFER', entityType: 'Offer', entityId: id, performedBy: user.id },
+    });
+
+    return res.json({ success: true, message: 'Offer deleted successfully.' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to delete offer.', error: error.message });
+  }
+};

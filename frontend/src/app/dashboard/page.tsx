@@ -208,6 +208,32 @@ function CustomerDashboardInner() {
     }
   };
 
+  const handleDeleteBooking = async (bookingId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    try {
+      await axios.delete(`${BACKEND_URL}/api/bookings/${bookingId}`);
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+    } catch (err) {
+      console.error('Failed to cancel booking:', err);
+      alert('Failed to cancel the booking. Please try again.');
+    }
+  };
+
+  const handleDeleteOffer = async (offerId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to cancel this proposal?')) return;
+    try {
+      await axios.delete(`${BACKEND_URL}/api/offers/${offerId}`);
+      setOffers((prev) => prev.filter((o) => o.id !== offerId));
+    } catch (err) {
+      console.error('Failed to cancel proposal:', err);
+      alert('Failed to cancel the proposal. Please try again.');
+    }
+  };
+
   if (loadingAuth || (!user && !loadingAuth)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
@@ -576,6 +602,13 @@ function CustomerDashboardInner() {
                               >
                                 View Car <ChevronRight size={14} />
                               </Link>
+                              <button
+                                onClick={(e) => handleDeleteBooking(booking.id, e)}
+                                className="p-2 border border-card-border hover:border-red-500 hover:bg-red-500/10 text-text-muted hover:text-red-500 rounded transition-colors ml-2"
+                                title="Cancel Booking"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -686,13 +719,20 @@ function CustomerDashboardInner() {
                               </div>
                             </div>
                             
-                            <div className="flex justify-end pt-2 mt-2 border-t border-card-border/50">
+                            <div className="flex justify-end pt-2 mt-2 border-t border-card-border/50 items-center gap-3">
                               <Link
                                 href={`/details?id=${offer.vehicleId}`}
                                 className="text-xs text-accent hover:text-accent-hover font-bold uppercase tracking-wider flex items-center gap-1"
                               >
                                 View Details <ChevronRight size={14} />
                               </Link>
+                              <button
+                                onClick={(e) => handleDeleteOffer(offer.id, e)}
+                                className="p-2 border border-card-border hover:border-red-500 hover:bg-red-500/10 text-text-muted hover:text-red-500 rounded transition-colors"
+                                title="Cancel Proposal"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </div>
 

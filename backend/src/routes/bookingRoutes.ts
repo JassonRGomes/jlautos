@@ -21,6 +21,6 @@ router.get('/:id', getBookingById);
 router.post('/', createBooking);
 router.patch('/:id/status', requireAdmin, updateBookingStatus);
 router.put('/:id', updateBooking);
-router.delete('/:id', requireAdmin, deleteBooking);
+router.delete('/:id', deleteBooking);
 
 export default router;
