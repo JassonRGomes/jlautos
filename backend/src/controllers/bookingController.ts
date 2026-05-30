@@ -93,13 +93,7 @@ export const createBooking = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(409).json({ success: false, message: 'This vehicle is already booked at the selected date and time.' });
     }
 
-    // Prevent user from having multiple active bookings for same vehicle
-    const existingUserBooking = await prisma.booking.findFirst({
-      where: { userId: user.id, vehicleId, status: { in: ['pending', 'confirmed'] } },
-    });
-    if (existingUserBooking) {
-      return res.status(409).json({ success: false, message: 'You already have an active booking for this vehicle.' });
-    }
+
 
     const booking = await prisma.booking.create({
       data: {

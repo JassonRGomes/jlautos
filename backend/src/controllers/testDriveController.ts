@@ -93,13 +93,7 @@ export const createTestDrive = async (req: AuthenticatedRequest, res: Response) 
       return res.status(409).json({ success: false, message: 'This vehicle already has a test drive scheduled at this date and time.' });
     }
 
-    // Customer cannot have multiple active test drives for same vehicle
-    const existingActive = await prisma.testDrive.findFirst({
-      where: { userId: user.id, vehicleId, status: { in: ['scheduled', 'approved'] } },
-    });
-    if (existingActive) {
-      return res.status(409).json({ success: false, message: 'You already have an active test drive for this vehicle.' });
-    }
+
 
     const testDrive = await prisma.testDrive.create({
       data: {
