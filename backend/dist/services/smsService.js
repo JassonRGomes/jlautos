@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSMSServiceStatus = exports.clearSMSDedupeCache = exports.sendBookingStatusSMSToCustomer = exports.sendNewBookingAlertToAgency = void 0;
+exports.sendTestDriveRejectedSMS = exports.sendTestDriveCancelledSMS = exports.sendTestDriveModifiedSMS = exports.sendTestDriveApprovedSMS = exports.sendTestDriveCreatedSMS = exports.getSMSServiceStatus = exports.clearSMSDedupeCache = exports.sendBookingStatusSMSToCustomer = exports.sendNewBookingAlertToAgency = void 0;
 const twilio_1 = __importDefault(require("twilio"));
 // ─── Environment Configuration ────────────────────────────────────────────────
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
@@ -157,4 +157,50 @@ const getSMSServiceStatus = () => ({
     mockMode: !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN,
 });
 exports.getSMSServiceStatus = getSMSServiceStatus;
+// ─── Test Drive Bookings SMS Notifications ─────────────────────────────────────
+/**
+ * Send SMS to the customer when their booking is created/requested.
+ */
+const sendTestDriveCreatedSMS = async (bookingRef, phone) => {
+    const body = `Your booking request #${bookingRef} has been received and is awaiting approval.`;
+    const key = `customer-created-${bookingRef}`;
+    return sendWithRetry({ to: phone, body, key, attempts: 0 });
+};
+exports.sendTestDriveCreatedSMS = sendTestDriveCreatedSMS;
+/**
+ * Send SMS to the customer when their booking is approved.
+ */
+const sendTestDriveApprovedSMS = async (bookingRef, phone) => {
+    const body = `Your test drive booking #${bookingRef} has been approved. Check your email for details.`;
+    const key = `customer-approved-${bookingRef}`;
+    return sendWithRetry({ to: phone, body, key, attempts: 0 });
+};
+exports.sendTestDriveApprovedSMS = sendTestDriveApprovedSMS;
+/**
+ * Send SMS to the customer when their booking is modified by the dealer.
+ */
+const sendTestDriveModifiedSMS = async (bookingRef, phone) => {
+    const body = `Your booking #${bookingRef} has been updated. Please review the new schedule.`;
+    const key = `customer-modified-${bookingRef}`;
+    return sendWithRetry({ to: phone, body, key, attempts: 0 });
+};
+exports.sendTestDriveModifiedSMS = sendTestDriveModifiedSMS;
+/**
+ * Send SMS to the customer when their booking is cancelled.
+ */
+const sendTestDriveCancelledSMS = async (bookingRef, phone) => {
+    const body = `Your booking #${bookingRef} has been cancelled.`;
+    const key = `customer-cancelled-${bookingRef}`;
+    return sendWithRetry({ to: phone, body, key, attempts: 0 });
+};
+exports.sendTestDriveCancelledSMS = sendTestDriveCancelledSMS;
+/**
+ * Send SMS to the customer when their booking is rejected.
+ */
+const sendTestDriveRejectedSMS = async (bookingRef, phone) => {
+    const body = `Your booking #${bookingRef} was not approved.`;
+    const key = `customer-rejected-${bookingRef}`;
+    return sendWithRetry({ to: phone, body, key, attempts: 0 });
+};
+exports.sendTestDriveRejectedSMS = sendTestDriveRejectedSMS;
 //# sourceMappingURL=smsService.js.map

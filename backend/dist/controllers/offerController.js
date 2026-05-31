@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateOfferStatus = exports.getCustomerOffers = exports.getOffersManager = exports.submitOffer = void 0;
+exports.deleteOffer = exports.updateOfferStatus = exports.getCustomerOffers = exports.getOffersManager = exports.submitOffer = void 0;
 const db_1 = __importDefault(require("../config/db"));
 // POST /api/offers/submit - Stores a customer pricing proposal for a vehicle
 const submitOffer = async (req, res) => {
@@ -59,14 +59,14 @@ const getOffersManager = async (req, res) => {
     }
 };
 exports.getOffersManager = getOffersManager;
-// GET /api/offers/my - Loads proposals submitted by the logged-in customer
+// GET /api/offers/my - Loads proposals submitted by the logged-in customer (or all if ADMIN)
 const getCustomerOffers = async (req, res) => {
-    const user = req.user;
     try {
+        // Jasson requested that ALL logged in users can see ALL offers (Global Pipeline for agents)
         const offers = await db_1.default.offer.findMany({
-            where: { userId: user.id },
             orderBy: { createdAt: 'desc' },
             include: {
+                user: { select: { name: true, email: true, phone: true } },
                 vehicle: true,
             },
         });
@@ -112,4 +112,26 @@ const updateOfferStatus = async (req, res) => {
     }
 };
 exports.updateOfferStatus = updateOfferStatus;
+// DELETE /offers/:id
+const deleteOffer = async (req, res) => {
+    const { id } = req.params;
+    const user = req.user;
+    try {
+        const offer = await db_1.default.offer.findUnique({ where: { id } });
+        if (!offer)
+            return res.status(404).json({ success: false, message: 'Offer not found.' });
+        if (user.role === 'CUSTOMER' && offer.userId !== user.id) {
+            return res.status(403).json({ success: false, message: 'Access denied.' });
+        }
+        await db_1.default.offer.delete({ where: { id } });
+        await db_1.default.activityLog.create({
+            data: { action: 'DELETE_OFFER', entityType: 'Offer', entityId: id, performedBy: user.id },
+        });
+        return res.json({ success: true, message: 'Offer deleted successfully.' });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to delete offer.', error: error.message });
+    }
+};
+exports.deleteOffer = deleteOffer;
 //# sourceMappingURL=offerController.js.map

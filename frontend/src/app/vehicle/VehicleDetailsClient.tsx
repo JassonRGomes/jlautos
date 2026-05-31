@@ -693,130 +693,29 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
             <div className="border-b border-card-border pb-3">
               <span className="text-[9px] font-extrabold text-accent uppercase tracking-widest">SHOWROOM CONCIERGE</span>
               <h3 className="text-xl font-bold uppercase tracking-tight text-foreground mt-0.5">
-                Reserve Appointment
+                VIP Test Drive
               </h3>
               <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
                 Schedule a private showroom viewing or VIP test drive session directly on our active dealership floor.
               </p>
             </div>
 
-            {/* Event Type Toggles */}
-            <div className="grid grid-cols-2 gap-2 bg-black/20 p-1.5 border border-white/5 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setEventType('VISIT')}
-                className={`py-2.5 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
-                  eventType === 'VISIT'
-                    ? 'bg-foreground/10 text-foreground shadow-md backdrop-blur-md border border-white/10'
-                    : 'text-text-muted hover:text-foreground hover:bg-white/5'
-                }`}
+            <div className="space-y-4">
+              <Link
+                href={`/book-test-drive?vehicleId=${vehicle.id}`}
+                className="w-full bg-gradient-to-r from-accent to-accent-hover text-white py-3.5 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-2 text-center"
               >
-                Private View
-              </button>
-              <button
-                type="button"
-                onClick={() => setEventType('TEST_DRIVE')}
-                disabled={vehicle.status !== 'ON_SALE'}
-                className={`py-2.5 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
-                  eventType === 'TEST_DRIVE'
-                    ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-lg shadow-accent/20 border border-accent-hover/50'
-                    : 'text-text-muted hover:text-foreground hover:bg-white/5'
-                } disabled:opacity-30 disabled:pointer-events-none`}
-              >
-                VIP Test Drive
-              </button>
+                <Calendar size={15} />
+                <span>Book a Test Drive</span>
+              </Link>
             </div>
-
-            {/* Form */}
-            <form onSubmit={handleScheduleBooking} className="space-y-5 mt-5 z-10 relative">
-              
-              {/* Date Input */}
-              <div className="flex flex-col space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-text-muted/80">Target Calendar Date</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-text-muted group-focus-within:text-accent transition-colors">
-                    <Calendar size={14} />
-                  </div>
-                  <input
-                    type="date"
-                    required
-                    value={bookingDate}
-                    onChange={(e) => setBookingDate(e.target.value)}
-                    min={minDate}
-                    className="w-full bg-black/40 border border-white/10 text-foreground pl-10 pr-3.5 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 transition-all shadow-inner"
-                  />
-                </div>
-              </div>
-
-              {/* Time slots Selector */}
-              <div className="flex flex-col space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-text-muted/80">Available Operational Slots</label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {availableSlots.map((slot) => {
-                    const active = selectedTimeSlot === slot;
-                    const isBooked = bookedSlots.includes(slot);
-                    return (
-                      <button
-                        key={slot}
-                        type="button"
-                        disabled={isBooked}
-                        onClick={() => setSelectedTimeSlot(slot)}
-                        className={`py-2.5 px-2 text-center text-xs font-bold rounded-xl border transition-all duration-300 ${
-                          active
-                            ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(var(--accent-rgb),0.4)] scale-[1.02]'
-                            : isBooked
-                              ? 'bg-black/20 border-white/5 opacity-30 cursor-not-allowed line-through text-text-muted'
-                              : 'bg-black/40 border-white/10 hover:border-accent/50 hover:bg-accent/10 text-foreground'
-                        }`}
-                      >
-                        {slot}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Status notifications */}
-              {bookingError && (
-                <div className="flex gap-2 items-start bg-red-500/10 border border-red-500/30 text-red-400 p-3.5 rounded-xl text-xs leading-relaxed backdrop-blur-md shadow-lg">
-                  <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
-                  <span>{bookingError}</span>
-                </div>
-              )}
-
-              {bookingSuccess && (
-                <div className="flex gap-2 items-start bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3.5 rounded-xl text-xs leading-relaxed backdrop-blur-md shadow-lg">
-                  <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5" />
-                  <span>{bookingSuccess}</span>
-                </div>
-              )}
-
-              {/* Submit Button */}
-              {user ? (
-                <button
-                  type="submit"
-                  disabled={bookingLoading || vehicle.status === 'SOLD'}
-                  className="w-full bg-gradient-to-r from-accent to-accent-hover text-white py-3.5 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-2 mt-4"
-                >
-                  <Calendar size={15} />
-                  <span>{bookingLoading ? 'Requesting Appointment...' : 'Schedule VIP Slot'}</span>
-                </button>
-              ) : (
-                <Link
-                  href="/login"
-                  className="w-full bg-gradient-to-r from-accent to-accent-hover text-white py-3.5 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-2 mt-4 hover:scale-[1.02]"
-                >
-                  Log In To Book
-                </Link>
-              )}
-
-            </form>
 
             <div className="pt-5 mt-2 border-t border-white/10 text-center">
               <span className="text-[9px] text-text-muted/60 uppercase tracking-[0.2em] font-bold">
                 J&L Autos Concierge Desk: <br className="hidden md:block"/>{settings?.phone || '+1 (214) 608-0670'}
               </span>
             </div>
+
 
           </div>
         </div>

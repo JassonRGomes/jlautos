@@ -342,3 +342,452 @@ export const blastVehicleNewsletter = async (data: NewsletterMailData) => {
     return { mockSent: true, error: err.message };
   }
 };
+
+// ─── 4. Test Drive Bookings Notifications ───────────────────────────────────────
+
+export interface TestDriveMailData {
+  id: string;
+  bookingReference: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  vehicleDetails: {
+    id: string;
+    make: string;
+    model: string;
+    year: number;
+    price: number;
+    transmission: string;
+    color: string;
+  };
+  bookingDate: Date;
+  bookingTime: string;
+  customerNotes?: string;
+  dealerNotes?: string;
+  cancellationReason?: string;
+  rejectionReason?: string;
+  googleCalendarLink?: string;
+  icsContent?: string;
+}
+
+const COMMON_CSS = `
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #0c0c0e; color: #e5e5e7; margin: 0; padding: 20px; }
+  .container { max-width: 600px; margin: 0 auto; background-color: #121214; border: 1px solid #1f1f23; border-radius: 8px; overflow: hidden; }
+  .header { background-color: #0c0c0e; padding: 40px 30px; text-align: center; border-bottom: 1px solid #1f1f23; }
+  .logo { color: #ffffff; font-size: 26px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 10px 0; }
+  .logo span { color: #0066ff; }
+  .subtitle { color: #8e8e93; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; margin: 0; }
+  .content { padding: 40px 30px; }
+  .greeting { font-size: 22px; color: #ffffff; font-weight: 400; text-align: center; margin-bottom: 10px; }
+  .status-banner { text-align: center; border: 1px solid #1f1f23; padding: 12px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; margin: 25px 0; }
+  .status-pending { background: rgba(0, 102, 255, 0.1); border-color: #0066ff; color: #0066ff; }
+  .status-approved { background: rgba(52, 199, 89, 0.1); border-color: #34c759; color: #34c759; }
+  .status-modified { background: rgba(255, 159, 10, 0.1); border-color: #ff9f0a; color: #ff9f0a; }
+  .status-cancelled { background: rgba(255, 69, 58, 0.1); border-color: #ff453a; color: #ff453a; }
+  .status-rejected { background: rgba(255, 69, 58, 0.1); border-color: #ff453a; color: #ff453a; }
+  .summary-card { background-color: #0c0c0e; border: 1px solid #1f1f23; border-radius: 6px; padding: 25px; margin-bottom: 30px; }
+  .invoice-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #1a1a1e; }
+  .invoice-row:last-child { border-bottom: none; }
+  .inv-label { color: #8e8e93; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .inv-val { color: #ffffff; font-size: 15px; font-weight: 500; text-align: right; }
+  .dealership-block { background: linear-gradient(135deg, #121214 0%, #17171d 100%); border: 1px dashed #0066ff; padding: 20px; border-radius: 6px; margin-bottom: 30px; }
+  .btn-container { text-align: center; margin-top: 35px; }
+  .btn { background-color: #0066ff; color: #ffffff !important; padding: 14px 35px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; display: inline-block; }
+  .btn-calendar { background-color: #242426; border: 1px solid #1f1f23; color: #e5e5e7 !important; margin-left: 10px; }
+  .reason-box { background-color: rgba(255, 69, 58, 0.05); border: 1px solid rgba(255, 69, 58, 0.2); padding: 15px; border-radius: 6px; color: #e5e5e7; margin-bottom: 30px; }
+  .footer { background-color: #0c0c0e; padding: 30px; text-align: center; font-size: 12px; color: #48484a; border-top: 1px solid #1f1f23; }
+  .footer-text { line-height: 1.6; margin-bottom: 15px; }
+`;
+
+/**
+ * 4.1 Booking Created Alert (to Customer & Dealership Copy)
+ */
+export const sendTestDriveCreatedEmail = async (data: TestDriveMailData) => {
+  const formattedDate = new Date(data.bookingDate).toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>${COMMON_CSS}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 class="logo">J&L <span>AUTOS</span></h1>
+          <p class="subtitle">Bespoke Concierge Portal</p>
+        </div>
+        <div class="content">
+          <h2 class="greeting">Dear ${data.customerName},</h2>
+          <p style="text-align: center; color: #a1a1a5; line-height: 1.5; font-size: 15px;">
+            We have received your request to book a VIP Test Drive. Our sales team is currently checking scheduling availability and will update you shortly.
+          </p>
+          
+          <div class="status-banner status-pending">
+            Status: Request Received & Awaiting Approval
+          </div>
+
+          <div class="summary-card">
+            <h3 style="color: #ffffff; margin-top: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1f1f23; padding-bottom: 10px; margin-bottom: 15px;">Booking Overview</h3>
+            <div class="invoice-row"><div class="inv-label">Booking Reference:</div><div class="inv-val" style="font-family: monospace; font-weight: bold; color: #0066ff;">#${data.bookingReference}</div></div>
+            <div class="invoice-row"><div class="inv-label">Vehicle Selected:</div><div class="inv-val">${data.vehicleDetails.year} ${data.vehicleDetails.make} ${data.vehicleDetails.model}</div></div>
+            <div class="invoice-row"><div class="inv-label">Requested Date:</div><div class="inv-val">${formattedDate}</div></div>
+            <div class="invoice-row"><div class="inv-label">Requested Time:</div><div class="inv-val">${data.bookingTime}</div></div>
+            ${data.customerNotes ? `<div class="invoice-row"><div class="inv-label">Your Notes:</div><div class="inv-val">${data.customerNotes}</div></div>` : ''}
+          </div>
+
+          <div class="dealership-block">
+            <h4 style="margin: 0 0 10px 0; color: #0066ff; text-transform: uppercase; font-size: 13px; letter-spacing: 1px;">Dealership Flagship Showroom</h4>
+            <p style="margin: 0 0 8px 0; color: #ffffff; font-weight: 500; font-size: 14px;">J&L Autos Luxury Flagship Showroom</p>
+            <p style="margin: 0 0 12px 0; color: #a1a1a5; font-size: 13px; line-height: 1.4;">100 Premium Way, Suite 400<br>Beverly Hills, CA 90210</p>
+            <p style="margin: 0; color: #8e8e93; font-size: 12px;">Questions? Call Concierge Desk: <strong>+1 (214) 608-0670</strong></p>
+          </div>
+
+          <div class="btn-container">
+            <a href="${FRONTEND_URL}/dashboard?tab=bookings" class="btn">View Customer Portal</a>
+          </div>
+        </div>
+        <div class="footer">
+          <p class="footer-text">This is an automated confirmation of request receipt. You will receive another email once approved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // Send to Customer
+  try {
+    await transporter.sendMail({
+      from: `"J&L Autos Showroom" <concierge@jlautos.com>`,
+      to: data.customerEmail,
+      subject: 'Test Drive Booking Request Received',
+      html,
+    });
+  } catch (err: any) {
+    console.error('[SMTP Customer Booking Alert Failure]:', err.message);
+  }
+
+  // Send to Agency Admin
+  try {
+    await transporter.sendMail({
+      from: `"J&L Autos Concierge" <noreply@jlautos.com>`,
+      to: AGENCY_EMAIL,
+      subject: `[ALERT] New Test Drive Requested: #${data.bookingReference}`,
+      html: html.replace('Dear ' + data.customerName, `Admin Notification - New Test Drive Request from ${data.customerName}`),
+    });
+  } catch (err: any) {
+    console.error('[SMTP Agency Booking Alert Failure]:', err.message);
+  }
+};
+
+/**
+ * 4.2 Booking Approved Alert (to Customer with Google Link & ICS attachment)
+ */
+export const sendTestDriveApprovedEmail = async (data: TestDriveMailData) => {
+  const formattedDate = new Date(data.bookingDate).toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>${COMMON_CSS}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 class="logo">J&L <span>AUTOS</span></h1>
+          <p class="subtitle">VIP Luxury Access</p>
+        </div>
+        <div class="content">
+          <h2 class="greeting">Dear ${data.customerName},</h2>
+          <p style="text-align: center; color: #a1a1a5; line-height: 1.5; font-size: 15px;">
+            Excellent news! Your private test drive booking has been reviewed and approved by our dealership management. Your vehicle reservation is confirmed.
+          </p>
+          
+          <div class="status-banner status-approved">
+            Booking Status: Confirmed & Approved
+          </div>
+
+          <div class="summary-card">
+            <h3 style="color: #ffffff; margin-top: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1f1f23; padding-bottom: 10px; margin-bottom: 15px;">Confirmed Appointment</h3>
+            <div class="invoice-row"><div class="inv-label">Booking Reference:</div><div class="inv-val" style="font-family: monospace; font-weight: bold; color: #0066ff;">#${data.bookingReference}</div></div>
+            <div class="invoice-row"><div class="inv-label">Vehicle Secured:</div><div class="inv-val">${data.vehicleDetails.year} ${data.vehicleDetails.make} ${data.vehicleDetails.model}</div></div>
+            <div class="invoice-row"><div class="inv-label">Scheduled Date:</div><div class="inv-val">${formattedDate}</div></div>
+            <div class="invoice-row"><div class="inv-label">Scheduled Time:</div><div class="inv-val">${data.bookingTime}</div></div>
+            ${data.dealerNotes ? `<div class="invoice-row"><div class="inv-label">Dealer Instructions:</div><div class="inv-val" style="color: #34c759;">${data.dealerNotes}</div></div>` : ''}
+          </div>
+
+          <div class="dealership-block">
+            <h4 style="margin: 0 0 10px 0; color: #0066ff; text-transform: uppercase; font-size: 13px; letter-spacing: 1px;">Appointment Logistics</h4>
+            <p style="margin: 0 0 8px 0; color: #ffffff; font-weight: 500; font-size: 14px;">J&L Autos Flagship Showroom</p>
+            <p style="margin: 0 0 12px 0; color: #a1a1a5; font-size: 13px; line-height: 1.4;">100 Premium Way, Suite 400<br>Beverly Hills, CA 90210</p>
+            <p style="margin: 0; color: #8e8e93; font-size: 12px;">Please bring your physical **driving license** and proof of insurance for the test drive experience.</p>
+          </div>
+
+          <div class="btn-container">
+            <a href="${FRONTEND_URL}/dashboard?tab=bookings" class="btn">Manage Booking</a>
+            ${data.googleCalendarLink ? `<a href="${data.googleCalendarLink}" target="_blank" class="btn btn-calendar">Add to Google Calendar</a>` : ''}
+          </div>
+        </div>
+        <div class="footer">
+          <p class="footer-text">An offline calendar invitation (.ics) is attached to this email. You can open it to add this event to Apple Calendar, Outlook, or other managers.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const attachments = [];
+  if (data.icsContent) {
+    attachments.push({
+      filename: `test_drive_${data.bookingReference}.ics`,
+      content: data.icsContent,
+      contentType: 'text/calendar',
+    });
+  }
+
+  try {
+    await transporter.sendMail({
+      from: `"J&L Autos Showroom" <concierge@jlautos.com>`,
+      to: data.customerEmail,
+      subject: 'Your Test Drive Has Been Approved',
+      html,
+      attachments,
+    });
+  } catch (err: any) {
+    console.error('[SMTP Customer Approved Alert Failure]:', err.message);
+  }
+};
+
+/**
+ * 4.3 Booking Modified Alert (to Customer)
+ */
+export const sendTestDriveModifiedEmail = async (data: TestDriveMailData) => {
+  const formattedDate = new Date(data.bookingDate).toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>${COMMON_CSS}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 class="logo">J&L <span>AUTOS</span></h1>
+          <p class="subtitle">Bespoke Rescheduling</p>
+        </div>
+        <div class="content">
+          <h2 class="greeting">Dear ${data.customerName},</h2>
+          <p style="text-align: center; color: #a1a1a5; line-height: 1.5; font-size: 15px;">
+            Your test drive booking has been updated by the dealership. Please review the updated scheduling information below.
+          </p>
+          
+          <div class="status-banner status-modified">
+            Booking Status: Modified by Dealer
+          </div>
+
+          <div class="summary-card">
+            <h3 style="color: #ffffff; margin-top: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1f1f23; padding-bottom: 10px; margin-bottom: 15px;">New Appointment Details</h3>
+            <div class="invoice-row"><div class="inv-label">Booking Reference:</div><div class="inv-val" style="font-family: monospace; font-weight: bold; color: #0066ff;">#${data.bookingReference}</div></div>
+            <div class="invoice-row"><div class="inv-label">Vehicle Assigned:</div><div class="inv-val">${data.vehicleDetails.year} ${data.vehicleDetails.make} ${data.vehicleDetails.model}</div></div>
+            <div class="invoice-row"><div class="inv-label">Updated Date:</div><div class="inv-val">${formattedDate}</div></div>
+            <div class="invoice-row"><div class="inv-label">Updated Time Slot:</div><div class="inv-val">${data.bookingTime}</div></div>
+            ${data.dealerNotes ? `<div class="invoice-row"><div class="inv-label">Dealer Message:</div><div class="inv-val" style="color: #ff9f0a;">${data.dealerNotes}</div></div>` : ''}
+          </div>
+
+          <div class="btn-container">
+            <a href="${FRONTEND_URL}/dashboard?tab=bookings" class="btn">Accept or Manage</a>
+            ${data.googleCalendarLink ? `<a href="${data.googleCalendarLink}" target="_blank" class="btn btn-calendar">Update Google Calendar</a>` : ''}
+          </div>
+        </div>
+        <div class="footer">
+          <p class="footer-text">The updated calendar invite (.ics) is attached to this email.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const attachments = [];
+  if (data.icsContent) {
+    attachments.push({
+      filename: `updated_test_drive_${data.bookingReference}.ics`,
+      content: data.icsContent,
+      contentType: 'text/calendar',
+    });
+  }
+
+  try {
+    await transporter.sendMail({
+      from: `"J&L Autos Showroom" <concierge@jlautos.com>`,
+      to: data.customerEmail,
+      subject: 'Your Test Drive Booking Has Been Updated',
+      html,
+      attachments,
+    });
+  } catch (err: any) {
+    console.error('[SMTP Customer Modified Alert Failure]:', err.message);
+  }
+};
+
+/**
+ * 4.4 Booking Cancelled Alert (to Customer & Dealership Copy)
+ */
+export const sendTestDriveCancelledEmail = async (data: TestDriveMailData) => {
+  const formattedDate = new Date(data.bookingDate).toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>${COMMON_CSS}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 class="logo">J&L <span>AUTOS</span></h1>
+          <p class="subtitle">Cancellation Notice</p>
+        </div>
+        <div class="content">
+          <h2 class="greeting">Dear ${data.customerName},</h2>
+          <p style="text-align: center; color: #a1a1a5; line-height: 1.5; font-size: 15px;">
+            This email confirms that your test drive booking has been cancelled.
+          </p>
+          
+          <div class="status-banner status-cancelled">
+            Booking Status: Cancelled
+          </div>
+
+          ${data.cancellationReason ? `
+          <div class="reason-box">
+            <strong style="display: block; font-size: 12px; text-transform: uppercase; color: #ff453a; margin-bottom: 5px;">Cancellation Reason:</strong>
+            <p style="margin: 0; font-size: 14px; font-weight: light; line-height: 1.4;">${data.cancellationReason}</p>
+          </div>
+          ` : ''}
+
+          <div class="summary-card">
+            <h3 style="color: #ffffff; margin-top: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1f1f23; padding-bottom: 10px; margin-bottom: 15px;">Cancelled Appointment Details</h3>
+            <div class="invoice-row"><div class="inv-label">Booking Reference:</div><div class="inv-val" style="font-family: monospace;">#${data.bookingReference}</div></div>
+            <div class="invoice-row"><div class="inv-label">Vehicle Selected:</div><div class="inv-val">${data.vehicleDetails.year} ${data.vehicleDetails.make} ${data.vehicleDetails.model}</div></div>
+            <div class="invoice-row"><div class="inv-label">Original Date:</div><div class="inv-val">${formattedDate}</div></div>
+            <div class="invoice-row"><div class="inv-label">Original Time:</div><div class="inv-val">${data.bookingTime}</div></div>
+          </div>
+
+          <p style="text-align: center; font-size: 13px; color: #8e8e93;">
+            If you wish to reschedule, please visit our digital showroom or contact the concierge desk at +1 (214) 608-0670.
+          </p>
+        </div>
+        <div class="footer">
+          &copy; 2026 J&L Autos. Transactional Cancellation Confirmation.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // Send to Customer
+  try {
+    await transporter.sendMail({
+      from: `"J&L Autos Showroom" <concierge@jlautos.com>`,
+      to: data.customerEmail,
+      subject: 'Your Test Drive Booking Has Been Cancelled',
+      html,
+    });
+  } catch (err: any) {
+    console.error('[SMTP Customer Cancelled Alert Failure]:', err.message);
+  }
+
+  // Send copy to Agency Admin
+  try {
+    await transporter.sendMail({
+      from: `"J&L Autos Concierge" <noreply@jlautos.com>`,
+      to: AGENCY_EMAIL,
+      subject: `[CANCELLED] Test Drive Booking #${data.bookingReference}`,
+      html: html.replace('Dear ' + data.customerName, `Admin Notification - Booking Cancelled for ${data.customerName}`),
+    });
+  } catch (err: any) {
+    console.error('[SMTP Agency Cancelled Alert Failure]:', err.message);
+  }
+};
+
+/**
+ * 4.5 Booking Rejected Alert (to Customer)
+ */
+export const sendTestDriveRejectedEmail = async (data: TestDriveMailData) => {
+  const formattedDate = new Date(data.bookingDate).toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>${COMMON_CSS}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 class="logo">J&L <span>AUTOS</span></h1>
+          <p class="subtitle">Bespoke Concierge Service</p>
+        </div>
+        <div class="content">
+          <h2 class="greeting">Dear ${data.customerName},</h2>
+          <p style="text-align: center; color: #a1a1a5; line-height: 1.5; font-size: 15px;">
+            Thank you for your interest in J&L Autos. Unfortunately, we were unable to approve your booking request for the selected date and time.
+          </p>
+          
+          <div class="status-banner status-rejected">
+            Booking Status: Request Not Approved
+          </div>
+
+          <div class="reason-box">
+            <strong style="display: block; font-size: 12px; text-transform: uppercase; color: #ff453a; margin-bottom: 5px;">Reason for Rejection:</strong>
+            <p style="margin: 0; font-size: 14px; font-weight: light; line-height: 1.4;">${data.rejectionReason}</p>
+          </div>
+
+          <div class="summary-card">
+            <h3 style="color: #ffffff; margin-top: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1f1f23; padding-bottom: 10px; margin-bottom: 15px;">Requested Event Details</h3>
+            <div class="invoice-row"><div class="inv-label">Booking Reference:</div><div class="inv-val" style="font-family: monospace;">#${data.bookingReference}</div></div>
+            <div class="invoice-row"><div class="inv-label">Vehicle Requested:</div><div class="inv-val">${data.vehicleDetails.year} ${data.vehicleDetails.make} ${data.vehicleDetails.model}</div></div>
+            <div class="invoice-row"><div class="inv-label">Requested Date:</div><div class="inv-val">${formattedDate}</div></div>
+            <div class="invoice-row"><div class="inv-label">Requested Time Slot:</div><div class="inv-val">${data.bookingTime}</div></div>
+          </div>
+
+          <p style="text-align: center; font-size: 13px; color: #8e8e93; max-width: 450px; margin: 0 auto;">
+            We invite you to submit a new scheduling request with alternative timings or contact our concierge directly to coordinate a customized visit.
+          </p>
+        </div>
+        <div class="footer">
+          &copy; 2026 J&L Autos. Transactional Update Notice.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"J&L Autos Showroom" <concierge@jlautos.com>`,
+      to: data.customerEmail,
+      subject: 'Your Test Drive Request Was Not Approved',
+      html,
+    });
+  } catch (err: any) {
+    console.error('[SMTP Customer Rejected Alert Failure]:', err.message);
+  }
+};
+

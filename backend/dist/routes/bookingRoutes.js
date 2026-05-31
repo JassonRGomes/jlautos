@@ -1,18 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const bookingController_1 = require("../controllers/bookingController");
+const testDriveBookingController_1 = require("../controllers/testDriveBookingController");
 const auth_1 = require("../middlewares/auth");
 const router = (0, express_1.Router)();
-// All booking routes require authentication
+// All customer booking routes require JWT authentication
 router.use(auth_1.authenticateJWT);
-router.get('/my', bookingController_1.getBookings);
-router.get('/ledger', auth_1.requireAdmin, bookingController_1.getBookings);
-router.get('/', bookingController_1.getBookings);
-router.get('/:id', bookingController_1.getBookingById);
-router.post('/', bookingController_1.createBooking);
-router.patch('/:id/status', auth_1.requireAdmin, bookingController_1.updateBookingStatus);
-router.put('/:id', bookingController_1.updateBooking);
-router.delete('/:id', auth_1.requireAdmin, bookingController_1.deleteBooking);
+router.post('/', testDriveBookingController_1.createBooking);
+router.get('/my', testDriveBookingController_1.getMyBookings);
+router.put('/:id', testDriveBookingController_1.updateBooking);
+router.delete('/:id', testDriveBookingController_1.deleteBooking);
 exports.default = router;
 //# sourceMappingURL=bookingRoutes.js.map

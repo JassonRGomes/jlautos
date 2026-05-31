@@ -32,6 +32,7 @@ model User {
   customerTestDrives TestDrive[]   @relation("CustomerTestDrives")
   salesTestDrives    TestDrive[]   @relation("SalesRepTestDrives")
   activityLogs       ActivityLog[] @relation("UserActivityLogs")
+  testDriveBookings  TestDriveBooking[] @relation("CustomerTestDriveBookings")
 }
 
 model Session {
@@ -93,6 +94,7 @@ model Vehicle {
   bookings   Booking[]
   testDrives TestDrive[]
   favorites  Favorite[]
+  testDriveBookings TestDriveBooking[] @relation("VehicleTestDriveBookings")
   offers     Offer[]
 
   @@index([make])
@@ -325,3 +327,28 @@ model Offer {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
+
+model TestDriveBooking {
+  id                  String    @id @default(uuid())
+  bookingReference    String    @unique @map("booking_reference")
+  customerId          String    @map("customer_id")
+  vehicleId           String    @map("vehicle_id")
+  dealerId            String?   @map("dealer_id")
+  bookingDate         DateTime  @map("booking_date")
+  bookingTime         String    @map("booking_time")
+  status              String    @default("Pending Approval")
+  customerNotes       String?   @db.Text @map("customer_notes")
+  dealerNotes         String?   @db.Text @map("dealer_notes")
+  cancellationReason  String?   @db.Text @map("cancellation_reason")
+  rejectionReason     String?   @db.Text @map("rejection_reason")
+  googleEventId       String?   @map("google_event_id")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  customer User    @relation("CustomerTestDriveBookings", fields: [customerId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle @relation("VehicleTestDriveBookings", fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@map("test_drive_bookings")
+}
+

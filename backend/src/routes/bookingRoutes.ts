@@ -1,30 +1,19 @@
 import { Router } from 'express';
 import {
-  getBookings,
-  getBookingById,
   createBooking,
+  getMyBookings,
   updateBooking,
   deleteBooking,
-  updateBookingStatus,
-  getMyBookings,
-  getBookedSlots,
-} from '../controllers/bookingController';
-import { authenticateJWT, requireAdmin } from '../middlewares/auth';
+} from '../controllers/testDriveBookingController';
+import { authenticateJWT } from '../middlewares/auth';
 
 const router = Router();
 
-// Public route to fetch unavailable slots
-router.get('/booked-slots/:vehicleId/:date', getBookedSlots);
-
-// All other booking routes require authentication
+// All customer booking routes require JWT authentication
 router.use(authenticateJWT);
 
-router.get('/my', getMyBookings);
-router.get('/ledger', requireAdmin, getBookings);
-router.get('/', getBookings);
-router.get('/:id', getBookingById);
 router.post('/', createBooking);
-router.patch('/:id/status', requireAdmin, updateBookingStatus);
+router.get('/my', getMyBookings);
 router.put('/:id', updateBooking);
 router.delete('/:id', deleteBooking);
 
