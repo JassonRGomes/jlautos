@@ -32,6 +32,49 @@ router.get('/fix-db', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/settings/fix-bookings — Creates test_drive_bookings table if missing (idempotent)
+router.get('/fix-bookings', async (_req: Request, res: Response) => {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS \`test_drive_bookings\` (
+        \`id\` VARCHAR(191) NOT NULL,
+        \`booking_reference\` VARCHAR(191) NOT NULL,
+        \`customer_id\` VARCHAR(191) NOT NULL,
+        \`vehicle_id\` VARCHAR(191) NOT NULL,
+        \`dealer_id\` VARCHAR(191) NULL,
+        \`booking_date\` DATETIME(3) NOT NULL,
+        \`booking_time\` VARCHAR(191) NOT NULL,
+        \`status\` VARCHAR(191) NOT NULL DEFAULT 'Pending Approval',
+        \`customer_notes\` TEXT NULL,
+        \`dealer_notes\` TEXT NULL,
+        \`cancellation_reason\` TEXT NULL,
+        \`rejection_reason\` TEXT NULL,
+        \`google_event_id\` VARCHAR(191) NULL,
+        \`created_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        \`updated_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+        \`deleted_at\` DATETIME(3) NULL,
+        PRIMARY KEY (\`id\`),
+        UNIQUE KEY \`test_drive_bookings_booking_reference_key\` (\`booking_reference\`),
+        KEY \`test_drive_bookings_customer_id_idx\` (\`customer_id\`),
+        KEY \`test_drive_bookings_vehicle_id_idx\` (\`vehicle_id\`),
+        CONSTRAINT \`fk_tdb_customer\`
+          FOREIGN KEY (\`customer_id\`) REFERENCES \`User\` (\`id\`) ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT \`fk_tdb_vehicle\`
+          FOREIGN KEY (\`vehicle_id\`) REFERENCES \`Vehicle\` (\`id\`) ON DELETE CASCADE ON UPDATE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Count existing bookings after ensuring table exists
+    const count = await prisma.testDriveBooking.count();
+    return res.json({
+      success: true,
+      message: `test_drive_bookings table is ready. Current record count: ${count}.`,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to create bookings table.', error: error.message });
+  }
+});
+
 // GET /api/settings — Returns public dealership settings for the frontend
 // Called by ThemeAuthContext on every page load
 router.get('/', async (_req: Request, res: Response) => {

@@ -10,6 +10,7 @@ export interface AuthenticatedRequest extends Request {
     email: string;
     role: string;
     name: string;
+    phone?: string | null;
   };
 }
 
@@ -41,7 +42,7 @@ export const authenticateJWT = async (
     // Verify user exists in the database
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, role: true, name: true }
+      select: { id: true, email: true, role: true, name: true, phone: true }
     });
 
     if (!user) {

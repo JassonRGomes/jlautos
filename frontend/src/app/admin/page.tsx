@@ -211,92 +211,114 @@ export default function AdministrativePanel() {
     }
   }, [user, loadingAuth]);
 
-  // 2. Sync all admin datastores
+  // 2. Sync all admin datastores — each source is independent so one failure won't block others
   async function syncLedgers() {
+    setLoadingData(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    const ts = Date.now();
+    const token = typeof window !== 'undefined' ? localStorage.getItem('jl_auth_token') : null;
+    const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+    const syncErrors: string[] = [];
+
+    // A. Sync Inventory (public endpoint — no auth needed)
     try {
-      setLoadingData(true);
-      setErrorMsg('');
-      setSuccessMsg('');
-
-      const ts = Date.now();
-
-      // A. Sync Inventory
       const invRes = await axios.get(`${BACKEND_URL}/api/vehicles?_t=${ts}`);
-      if (invRes.data && invRes.data.vehicles) {
-        // Parse images if returned as string
+      if (invRes.data?.vehicles) {
         const parsed = invRes.data.vehicles.map((v: any) => {
-          let imgs = [];
+          let imgs: string[] = [];
           if (typeof v.images === 'string') {
-            try { imgs = JSON.parse(v.images); } catch (e) { imgs = [v.images]; }
-          } else { imgs = v.images; }
+            try { imgs = JSON.parse(v.images); } catch { imgs = [v.images]; }
+          } else if (Array.isArray(v.images)) {
+            imgs = v.images;
+          }
           return { ...v, images: imgs };
         });
         setInventory(parsed);
       }
+    } catch (err: any) {
+      console.error('[Sync] Inventory fetch failed:', err);
+      syncErrors.push('Inventory');
+    }
 
-      // B. Sync Bookings
-      const token = localStorage.getItem('jl_auth_token');
+    // B. Sync Bookings (admin-only endpoint)
+    // Silently ensure test_drive_bookings table exists before querying
+    try { await axios.get(`${BACKEND_URL}/api/settings/fix-bookings`); } catch { /* silent */ }
+    try {
       const bookRes = await axios.get(
         `${BACKEND_URL}/api/dealer/bookings?status=${bookingStatusFilter}&search=${bookingSearchQuery}&_t=${ts}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        { headers: authHeader }
       );
       const bookingsRaw = bookRes.data?.data;
-      if (bookingsRaw) {
+      if (Array.isArray(bookingsRaw)) {
         const parsedBookings = bookingsRaw.map((b: any) => {
-          let imgs = [];
+          let imgs: string[] = [];
           if (b.vehicle && typeof b.vehicle.images === 'string') {
-            try { imgs = JSON.parse(b.vehicle.images); } catch (e) { imgs = [b.vehicle.images]; }
-          } else if (b.vehicle && b.vehicle.images) { 
-            imgs = b.vehicle.images; 
+            try { imgs = JSON.parse(b.vehicle.images); } catch { imgs = [b.vehicle.images]; }
+          } else if (b.vehicle && Array.isArray(b.vehicle.images)) {
+            imgs = b.vehicle.images;
           }
           return { ...b, vehicle: b.vehicle ? { ...b.vehicle, images: imgs } : null };
         });
         setBookings(parsedBookings);
       }
+    } catch (err: any) {
+      console.error('[Sync] Bookings fetch failed:', err);
+      syncErrors.push('Bookings');
+    }
 
-
-      // C. Sync Offers
+    // C. Sync Offers (admin-only endpoint)
+    try {
       const offerRes = await axios.get(
         `${BACKEND_URL}/api/offers/manager?_t=${ts}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        { headers: authHeader }
       );
       const offersRaw = offerRes.data?.offers || offerRes.data?.data;
-      if (offersRaw) {
+      if (Array.isArray(offersRaw)) {
         const parsedOffers = offersRaw.map((o: any) => {
-          let imgs = [];
+          let imgs: string[] = [];
           if (o.vehicle && typeof o.vehicle.images === 'string') {
-            try { imgs = JSON.parse(o.vehicle.images); } catch (e) { imgs = [o.vehicle.images]; }
-          } else if (o.vehicle && o.vehicle.images) { 
-            imgs = o.vehicle.images; 
+            try { imgs = JSON.parse(o.vehicle.images); } catch { imgs = [o.vehicle.images]; }
+          } else if (o.vehicle && Array.isArray(o.vehicle.images)) {
+            imgs = o.vehicle.images;
           }
           return { ...o, vehicle: o.vehicle ? { ...o.vehicle, images: imgs } : null };
         });
         setOffers(parsedOffers);
       }
+    } catch (err: any) {
+      console.error('[Sync] Offers fetch failed:', err);
+      syncErrors.push('Offers');
+    }
 
-      // D. Sync Customers Directories
+    // D. Sync Customers Directory (admin-only endpoint)
+    try {
       const custRes = await axios.get(
         `${BACKEND_URL}/api/settings/customers?_t=${ts}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        { headers: authHeader }
       );
       const custRaw = custRes.data?.data || custRes.data?.registry;
-      if (custRaw) {
+      if (Array.isArray(custRaw)) {
         setCustomers(custRaw);
       }
+    } catch (err: any) {
+      console.error('[Sync] Customers fetch failed:', err);
+      syncErrors.push('Customers');
+    }
 
+    setLoadingData(false);
+
+    if (syncErrors.length === 0) {
       setSuccessMsg('All registers synchronized successfully.');
       setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (err: any) {
-      console.error('Failed to sync administrative datastores:', err);
-      setErrorMsg('Failed to sync server metadata. Check backend connection.');
-    } finally {
-      setLoadingData(false);
+    } else if (syncErrors.length < 4) {
+      // Partial success — some loaded, some didn't
+      setSuccessMsg(`Sync complete (partial). Failed sections: ${syncErrors.join(', ')}. Check console for details.`);
+      setTimeout(() => setSuccessMsg(''), 6000);
+    } else {
+      // Everything failed — likely a real connection problem
+      setErrorMsg('Failed to sync server metadata. Check backend connection and authentication.');
     }
   };
 
