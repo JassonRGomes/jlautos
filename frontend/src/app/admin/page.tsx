@@ -258,7 +258,12 @@ export default function AdministrativePanel() {
 
 
       // C. Sync Offers
-      const offerRes = await axios.get(`${BACKEND_URL}/api/offers/manager?_t=${ts}`);
+      const offerRes = await axios.get(
+        `${BACKEND_URL}/api/offers/manager?_t=${ts}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
       const offersRaw = offerRes.data?.offers || offerRes.data?.data;
       if (offersRaw) {
         const parsedOffers = offersRaw.map((o: any) => {
@@ -274,9 +279,15 @@ export default function AdministrativePanel() {
       }
 
       // D. Sync Customers Directories
-      const custRes = await axios.get(`${BACKEND_URL}/api/settings/customers?_t=${ts}`);
-      if (custRes.data && custRes.data.registry) {
-        setCustomers(custRes.data.registry);
+      const custRes = await axios.get(
+        `${BACKEND_URL}/api/settings/customers?_t=${ts}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      const custRaw = custRes.data?.data || custRes.data?.registry;
+      if (custRaw) {
+        setCustomers(custRaw);
       }
 
       setSuccessMsg('All registers synchronized successfully.');
@@ -304,8 +315,12 @@ export default function AdministrativePanel() {
       setSuccessMsg('');
       setErrorMsg('');
 
+      const token = localStorage.getItem('jl_auth_token');
       const res = await axios.post(`${BACKEND_URL}/api/vehicles/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        },
       });
 
       if (res.data && res.data.urls) {
@@ -328,6 +343,7 @@ export default function AdministrativePanel() {
       setErrorMsg('');
       setSuccessMsg('');
 
+      const token = localStorage.getItem('jl_auth_token');
       const res = await axios.put(`${BACKEND_URL}/api/settings`, {
         address: formAddress,
         phone: formPhone,
@@ -338,6 +354,8 @@ export default function AdministrativePanel() {
           saturday: formSaturday,
           sunday: formSunday,
         },
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (res.data) {
@@ -369,8 +387,12 @@ export default function AdministrativePanel() {
       setSuccessMsg('');
       setErrorMsg('');
 
+      const token = localStorage.getItem('jl_auth_token');
       const res = await axios.post(`${BACKEND_URL}/api/vehicles/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        },
       });
 
       if (res.data && res.data.urls && res.data.urls.length > 0) {
@@ -433,11 +455,16 @@ export default function AdministrativePanel() {
       setErrorMsg('');
       setSuccessMsg('');
 
+      const token = localStorage.getItem('jl_auth_token');
       if (isEditing && editingVehicleId) {
-        await axios.put(`${BACKEND_URL}/api/vehicles/${editingVehicleId}`, payload);
+        await axios.put(`${BACKEND_URL}/api/vehicles/${editingVehicleId}`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setSuccessMsg('Dealership asset specifications updated.');
       } else {
-        await axios.post(`${BACKEND_URL}/api/vehicles`, payload);
+        await axios.post(`${BACKEND_URL}/api/vehicles`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setSuccessMsg('New luxury model appended to Digital Showroom.');
       }
 
@@ -503,7 +530,10 @@ export default function AdministrativePanel() {
     if (!window.confirm('Retire this luxury vehicle asset from active digital showroom feeds?')) return;
     try {
       setLoadingData(true);
-      await axios.delete(`${BACKEND_URL}/api/vehicles/${id}`);
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.delete(`${BACKEND_URL}/api/vehicles/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setSuccessMsg('Asset cataloged retired successfully.');
       syncLedgers();
     } catch (err: any) {
@@ -732,12 +762,14 @@ export default function AdministrativePanel() {
     }
   }, [bookingStatusFilter, bookingSearchQuery]);
 
-
   // 6. Resolve Customer Proposal Negotiation
   const handleUpdateOfferStatus = async (id: string, newStatus: 'ACCEPTED' | 'DECLINED') => {
     try {
       setLoadingData(true);
-      await axios.patch(`${BACKEND_URL}/api/offers/${id}/status`, { status: newStatus });
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.patch(`${BACKEND_URL}/api/offers/${id}/status`, { status: newStatus }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setSuccessMsg(`Acquisition proposal status resolved: ${newStatus}`);
       syncLedgers();
     } catch (err: any) {
@@ -757,7 +789,10 @@ export default function AdministrativePanel() {
       setSuccessMsg('');
       setErrorMsg('');
 
-      const res = await axios.post(`${BACKEND_URL}/api/settings/newsletter`, { vehicleId });
+      const token = localStorage.getItem('jl_auth_token');
+      const res = await axios.post(`${BACKEND_URL}/api/settings/newsletter`, { vehicleId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setSuccessMsg(res.data.message || 'Newsletter broadcast dispatched successfully.');
     } catch (err: any) {
       console.error('Newsletter blast error:', err);

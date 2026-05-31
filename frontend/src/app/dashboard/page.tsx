@@ -134,21 +134,28 @@ function CustomerDashboardInner() {
       if (!silent) setLoadingData(true);
       setErrorMsg('');
 
+      const token = localStorage.getItem('jl_auth_token');
       const ts = Date.now();
       // A. Fetch Favorites
-      const favRes = await axios.get(`${BACKEND_URL}/api/vehicles/favorites?_t=${ts}`);
+      const favRes = await axios.get(`${BACKEND_URL}/api/vehicles/favorites?_t=${ts}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (favRes.data && favRes.data.vehicles) {
         setFavorites(favRes.data.vehicles);
       }
 
       // B. Fetch Saved Searches
-      const searchRes = await axios.get(`${BACKEND_URL}/api/vehicles/saved-searches?_t=${ts}`);
+      const searchRes = await axios.get(`${BACKEND_URL}/api/vehicles/saved-searches?_t=${ts}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (searchRes.data && searchRes.data.saved) {
         setSavedSearches(searchRes.data.saved);
       }
 
       // C. Fetch Bookings
-      const bookingRes = await axios.get(`${BACKEND_URL}/api/bookings/my?_t=${ts}`);
+      const bookingRes = await axios.get(`${BACKEND_URL}/api/bookings/my?_t=${ts}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (bookingRes.data && bookingRes.data.data) {
         const parsed = bookingRes.data.data.map((b: any) => {
           let imgs = [];
@@ -168,7 +175,9 @@ function CustomerDashboardInner() {
 
 
       // D. Fetch Offers
-      const offerRes = await axios.get(`${BACKEND_URL}/api/offers/my?_t=${ts}`);
+      const offerRes = await axios.get(`${BACKEND_URL}/api/offers/my?_t=${ts}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (offerRes.data && offerRes.data.data) {
         const parsedOffers = offerRes.data.data.map((o: any) => {
           let imgs = [];
@@ -203,7 +212,10 @@ function CustomerDashboardInner() {
     e.preventDefault();
     e.stopPropagation();
     try {
-      await axios.delete(`${BACKEND_URL}/api/vehicles/saved-searches/${id}`);
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.delete(`${BACKEND_URL}/api/vehicles/saved-searches/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setSavedSearches((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
       console.error('Failed to clear filter search:', err);
@@ -226,7 +238,10 @@ function CustomerDashboardInner() {
     e.preventDefault();
     e.stopPropagation();
     try {
-      await axios.post(`${BACKEND_URL}/api/vehicles/${vehicleId}/favorite`);
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.post(`${BACKEND_URL}/api/vehicles/${vehicleId}/favorite`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setFavorites((prev) => prev.filter((v) => v.id !== vehicleId));
     } catch (err) {
       console.error('Failed to untag favorite:', err);
@@ -323,7 +338,10 @@ function CustomerDashboardInner() {
     e.stopPropagation();
     if (!window.confirm('Are you sure you want to cancel this proposal?')) return;
     try {
-      await axios.delete(`${BACKEND_URL}/api/offers/${offerId}`);
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.delete(`${BACKEND_URL}/api/offers/${offerId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setOffers((prev) => prev.filter((o) => o.id !== offerId));
     } catch (err) {
       console.error('Failed to cancel proposal:', err);
