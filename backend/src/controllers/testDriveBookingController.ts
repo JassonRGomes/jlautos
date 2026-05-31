@@ -81,13 +81,20 @@ export const createBooking = async (req: AuthenticatedRequest, res: Response) =>
     mobileNumber,
     drivingLicenseNumber,
     customerNotes,
+    notes, // Support "notes" key sent from Details page popup
   } = req.body;
 
+  // Fallback to authenticated user info if not supplied in request body (e.g. details page popup)
+  const finalFullName = fullName || user.name || 'VIP Client';
+  const finalEmail = email || user.email;
+  const finalMobileNumber = mobileNumber || user.phone || '';
+  const finalCustomerNotes = customerNotes || notes || '';
+
   // 1. Required fields validation
-  if (!vehicleId || !bookingDate || !bookingTime || !fullName || !email || !mobileNumber) {
+  if (!vehicleId || !bookingDate || !bookingTime || !finalFullName || !finalEmail) {
     return res.status(400).json({
       success: false,
-      message: 'Vehicle, booking date, booking time, name, email, and mobile number are required.',
+      message: 'Vehicle, booking date, booking time, name, and email are required.',
     });
   }
 
@@ -137,15 +144,15 @@ export const createBooking = async (req: AuthenticatedRequest, res: Response) =>
 
     // 6. Optionally sync customer mobile number/name to User profile
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-    if (dbUser && mobileNumber && (!dbUser.phone || dbUser.phone !== mobileNumber)) {
+    if (dbUser && finalMobileNumber && (!dbUser.phone || dbUser.phone !== finalMobileNumber)) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { phone: mobileNumber },
+        data: { phone: finalMobileNumber },
       });
     }
 
     // 7. Format notes to store license
-    let notes = customerNotes || '';
+    let notes = finalCustomerNotes || '';
     if (drivingLicenseNumber) {
       notes = `[Driving License: ${drivingLicenseNumber}] ${notes}`.trim();
     }
