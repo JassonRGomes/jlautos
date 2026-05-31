@@ -1208,48 +1208,47 @@ export default function AdministrativePanel() {
                           {/* Actions */}
                           <td className="py-3.5 px-4 text-right">
                             {booking.status === 'PENDING' ? (
-                              <div className="flex justify-end gap-1.5">
+                              <div className="flex justify-end gap-2">
                                 {/* CONFIRM button */}
                                 <button
                                   id={`confirm-booking-${booking.id}`}
                                   onClick={() => handleUpdateBookingStatus(booking.id, 'CONFIRMED')}
                                   disabled={!!bookingActionLoading[booking.id]}
-                                  className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded transition-all flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"
+                                  className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black px-4 py-2 rounded-md transition-all flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:scale-[1.02]"
                                   title="Confirm booking & SMS customer"
                                 >
                                   {bookingActionLoading[booking.id] ? (
-                                    <RefreshCw size={11} className="animate-spin" />
+                                    <RefreshCw size={13} className="animate-spin" />
                                   ) : (
-                                    <Check size={11} />
+                                    <Check size={13} />
                                   )}
-                                  Confirm
+                                  Approve
                                 </button>
                                 {/* CANCEL button */}
                                 <button
                                   id={`cancel-booking-${booking.id}`}
                                   onClick={() => handleUpdateBookingStatus(booking.id, 'CANCELED')}
                                   disabled={!!bookingActionLoading[booking.id]}
-                                  className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded transition-all flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"
+                                  className="bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 text-red-500 border border-red-500/30 px-4 py-2 rounded-md transition-all flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider hover:scale-[1.02]"
                                   title="Cancel booking & SMS customer"
                                 >
                                   {bookingActionLoading[booking.id] ? (
-                                    <RefreshCw size={11} className="animate-spin" />
+                                    <RefreshCw size={13} className="animate-spin" />
                                   ) : (
-                                    <X size={11} />
+                                    <X size={13} />
                                   )}
-                                  Cancel
+                                  Reject
                                 </button>
                               </div>
                             ) : (
                               <div className="text-right">
-                                <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded ${
+                                <span className={`inline-block text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-md shadow-sm ${
                                   booking.status === 'CONFIRMED'
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
+                                    : 'bg-red-500/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
                                 }`}>
-                                  {booking.status === 'CONFIRMED' ? '✅ Confirmed' : '❌ Cancelled'}
+                                  {booking.status === 'CONFIRMED' ? '✅ Approved' : '❌ Rejected'}
                                 </span>
-                                <div className="text-[9px] text-text-muted mt-1">SMS sent to client</div>
                               </div>
                             )}
                           </td>
@@ -1358,20 +1357,20 @@ export default function AdministrativePanel() {
                             {/* Actions */}
                             <td className="py-3.5 px-4 text-right">
                               {offer.status === 'UNDER_REVIEW' ? (
-                                <div className="flex justify-end gap-1.5">
+                                <div className="flex justify-end gap-2">
                                   <button
                                     onClick={() => handleUpdateOfferStatus(offer.id, 'ACCEPTED')}
-                                    className="bg-emerald-500 hover:bg-emerald-600 text-white p-1.5 rounded transition-all"
+                                    className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black px-4 py-2 rounded-md transition-all flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:scale-[1.02]"
                                     title="Accept proposal and Reserve asset"
                                   >
-                                    <Check size={12} />
+                                    <Check size={13} /> Approve
                                   </button>
                                   <button
                                     onClick={() => handleUpdateOfferStatus(offer.id, 'DECLINED')}
-                                    className="bg-red-600 hover:bg-red-700 text-white p-1.5 rounded transition-all"
+                                    className="bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 text-red-500 border border-red-500/30 px-4 py-2 rounded-md transition-all flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider hover:scale-[1.02]"
                                     title="Decline price offer"
                                   >
-                                    <X size={12} />
+                                    <X size={13} /> Reject
                                   </button>
                                 </div>
                               ) : (

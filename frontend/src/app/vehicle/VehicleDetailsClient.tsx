@@ -357,7 +357,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
   if (error || !vehicle) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground px-4">
-        <div className="max-w-md w-full bg-card border border-card-border p-8 rounded-lg shadow-xl text-center space-y-6">
+        <div className="max-w-md w-full bg-card/60 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl text-center space-y-6">
           <AlertTriangle className="text-red-500 mx-auto" size={48} />
           <h2 className="text-2xl font-bold uppercase tracking-tight">Listing Unavailable</h2>
           <p className="text-sm text-text-muted leading-relaxed">
@@ -701,14 +701,14 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
             </div>
 
             {/* Event Type Toggles */}
-            <div className="grid grid-cols-2 gap-2 bg-background p-1 border border-card-border rounded-md">
+            <div className="grid grid-cols-2 gap-2 bg-black/20 p-1.5 border border-white/5 rounded-xl">
               <button
                 type="button"
                 onClick={() => setEventType('VISIT')}
-                className={`py-2 text-xs font-bold uppercase tracking-wider rounded transition-all ${
+                className={`py-2.5 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
                   eventType === 'VISIT'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-text-muted hover:text-foreground'
+                    ? 'bg-foreground/10 text-foreground shadow-md backdrop-blur-md border border-white/10'
+                    : 'text-text-muted hover:text-foreground hover:bg-white/5'
                 }`}
               >
                 Private View
@@ -717,10 +717,10 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
                 type="button"
                 onClick={() => setEventType('TEST_DRIVE')}
                 disabled={vehicle.status !== 'ON_SALE'}
-                className={`py-2 text-xs font-bold uppercase tracking-wider rounded transition-all ${
+                className={`py-2.5 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
                   eventType === 'TEST_DRIVE'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-text-muted hover:text-foreground'
+                    ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-lg shadow-accent/20 border border-accent-hover/50'
+                    : 'text-text-muted hover:text-foreground hover:bg-white/5'
                 } disabled:opacity-30 disabled:pointer-events-none`}
               >
                 VIP Test Drive
@@ -728,27 +728,30 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
             </div>
 
             {/* Form */}
-            <form onSubmit={handleScheduleBooking} className="space-y-4">
+            <form onSubmit={handleScheduleBooking} className="space-y-5 mt-5 z-10 relative">
               
               {/* Date Input */}
-              <div className="flex flex-col space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Target Calendar Date</label>
-                <div className="relative">
+              <div className="flex flex-col space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-text-muted/80">Target Calendar Date</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-text-muted group-focus-within:text-accent transition-colors">
+                    <Calendar size={14} />
+                  </div>
                   <input
                     type="date"
                     required
                     value={bookingDate}
                     onChange={(e) => setBookingDate(e.target.value)}
                     min={minDate}
-                    className="w-full bg-background border border-card-border text-foreground px-3.5 py-2.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-accent"
+                    className="w-full bg-black/40 border border-white/10 text-foreground pl-10 pr-3.5 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 transition-all shadow-inner"
                   />
                 </div>
               </div>
 
               {/* Time slots Selector */}
-              <div className="flex flex-col space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Available Operational Slots</label>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-text-muted/80">Available Operational Slots</label>
+                <div className="grid grid-cols-2 gap-2.5">
                   {availableSlots.map((slot) => {
                     const active = selectedTimeSlot === slot;
                     const isBooked = bookedSlots.includes(slot);
@@ -758,12 +761,12 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
                         type="button"
                         disabled={isBooked}
                         onClick={() => setSelectedTimeSlot(slot)}
-                        className={`py-2 px-1 text-center text-xs font-semibold rounded border transition-all ${
+                        className={`py-2.5 px-2 text-center text-xs font-bold rounded-xl border transition-all duration-300 ${
                           active
-                            ? 'bg-accent/10 border-accent text-accent'
+                            ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(var(--accent-rgb),0.4)] scale-[1.02]'
                             : isBooked
-                              ? 'bg-card border-card-border opacity-20 cursor-not-allowed line-through'
-                              : 'bg-background border-card-border hover:border-zinc-500 text-foreground'
+                              ? 'bg-black/20 border-white/5 opacity-30 cursor-not-allowed line-through text-text-muted'
+                              : 'bg-black/40 border-white/10 hover:border-accent/50 hover:bg-accent/10 text-foreground'
                         }`}
                       >
                         {slot}
@@ -775,14 +778,14 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
               {/* Status notifications */}
               {bookingError && (
-                <div className="flex gap-2 items-start bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded text-xs leading-relaxed">
+                <div className="flex gap-2 items-start bg-red-500/10 border border-red-500/30 text-red-400 p-3.5 rounded-xl text-xs leading-relaxed backdrop-blur-md shadow-lg">
                   <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
                   <span>{bookingError}</span>
                 </div>
               )}
 
               {bookingSuccess && (
-                <div className="flex gap-2 items-start bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 p-3 rounded text-xs leading-relaxed">
+                <div className="flex gap-2 items-start bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3.5 rounded-xl text-xs leading-relaxed backdrop-blur-md shadow-lg">
                   <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5" />
                   <span>{bookingSuccess}</span>
                 </div>
@@ -793,25 +796,25 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
                 <button
                   type="submit"
                   disabled={bookingLoading || vehicle.status === 'SOLD'}
-                  className="w-full bg-accent hover:bg-accent-hover text-white py-3 rounded-md text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none shadow-md shadow-accent/25 flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-accent to-accent-hover text-white py-3.5 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-2 mt-4"
                 >
-                  <Calendar size={14} />
-                  <span>{bookingLoading ? 'Requesting Appointment...' : 'Schedule Concierge VIP Slot'}</span>
+                  <Calendar size={15} />
+                  <span>{bookingLoading ? 'Requesting Appointment...' : 'Schedule VIP Slot'}</span>
                 </button>
               ) : (
                 <Link
                   href="/login"
-                  className="w-full bg-accent hover:bg-accent-hover text-white py-3 rounded-md text-xs font-bold uppercase tracking-widest transition-all shadow-md shadow-accent/25 block text-center uppercase"
+                  className="w-full bg-gradient-to-r from-accent to-accent-hover text-white py-3.5 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-2 mt-4 hover:scale-[1.02]"
                 >
-                  Log In To Book Viewings
+                  Log In To Book
                 </Link>
               )}
 
             </form>
 
-            <div className="pt-4 border-t border-card-border/60 text-center">
-              <span className="text-[10px] text-text-muted uppercase tracking-widest font-semibold">
-                J&L Autos Concierge Desk: {settings?.phone || '+1 (214) 608-0670'}
+            <div className="pt-5 mt-2 border-t border-white/10 text-center">
+              <span className="text-[9px] text-text-muted/60 uppercase tracking-[0.2em] font-bold">
+                J&L Autos Concierge Desk: <br className="hidden md:block"/>{settings?.phone || '+1 (214) 608-0670'}
               </span>
             </div>
 
