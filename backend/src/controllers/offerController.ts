@@ -53,8 +53,12 @@ export const submitOffer = async (req: AuthenticatedRequest, res: Response) => {
 
 // GET /api/offers/manager - Loads ALL proposals for administrative evaluation (admin only)
 export const getOffersManager = async (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
   try {
+    // If admin, return all offers. Otherwise, return only offers belonging to the authenticated user.
+    const whereClause = (user.role || '').toUpperCase() === 'ADMIN' ? {} : { userId: user.id };
     const offers = await prisma.offer.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, name: true, email: true, phone: true } },
