@@ -3,9 +3,18 @@ import prisma from '../config/db';
 import { AuthenticatedRequest } from '../middlewares/auth';
 
 // POST /api/offers/submit - Stores a customer pricing proposal for a vehicle
+// RULE 2: Administrators cannot submit offers — conflict of interest prevention
 export const submitOffer = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
   const { vehicleId, offerAmount } = req.body;
+
+  // Rule 2: Block admin from submitting offers on dealership vehicles
+  if (user.role === 'ADMIN') {
+    return res.status(403).json({
+      success: false,
+      message: 'Administrators are not permitted to submit price proposals on dealership assets.',
+    });
+  }
 
   if (!vehicleId || !offerAmount) {
     return res.status(400).json({ success: false, message: 'vehicleId and offerAmount are required.' });
@@ -42,7 +51,7 @@ export const submitOffer = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-// GET /api/offers/manager - Loads pending and past proposals for administrative evaluation
+// GET /api/offers/manager - Loads ALL proposals for administrative evaluation (admin only)
 export const getOffersManager = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const offers = await prisma.offer.findMany({
@@ -59,11 +68,13 @@ export const getOffersManager = async (req: AuthenticatedRequest, res: Response)
   }
 };
 
-// GET /api/offers/my - Loads proposals submitted by the logged-in customer (or all if ADMIN)
+// GET /api/offers/my - RULE 1: Customer only sees their own proposals
 export const getCustomerOffers = async (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
   try {
-    // Jasson requested that ALL logged in users can see ALL offers (Global Pipeline for agents)
+    // Rule 1: Customers only see their own offers — filter strictly by userId
     const offers = await prisma.offer.findMany({
+      where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { name: true, email: true, phone: true } },
@@ -77,7 +88,7 @@ export const getCustomerOffers = async (req: AuthenticatedRequest, res: Response
   }
 };
 
-// PATCH /api/offers/:id/status - Resolves proposal status as ACCEPTED or DECLINED
+// PATCH /api/offers/:id/status - Resolves proposal status as ACCEPTED or DECLINED (admin only)
 export const updateOfferStatus = async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -115,7 +126,9 @@ export const updateOfferStatus = async (req: AuthenticatedRequest, res: Response
   }
 };
 
-// DELETE /offers/:id
+// DELETE /api/offers/:id
+// RULE 3: Admins can only delete offers that are already resolved (ACCEPTED or DECLINED)
+//         Customers can only delete their own offers that are UNDER_REVIEW (retract proposal)
 export const deleteOffer = async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
@@ -123,8 +136,19 @@ export const deleteOffer = async (req: AuthenticatedRequest, res: Response) => {
     const offer = await prisma.offer.findUnique({ where: { id } });
     if (!offer) return res.status(404).json({ success: false, message: 'Offer not found.' });
 
-    if (user.role === 'CUSTOMER' && offer.userId !== user.id) {
-      return res.status(403).json({ success: false, message: 'Access denied.' });
+    if (user.role === 'ADMIN') {
+      // Rule 3: Admin can only delete resolved offers (ACCEPTED or DECLINED)
+      if (!['ACCEPTED', 'DECLINED'].includes(offer.status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Only resolved proposals (Accepted or Declined) can be deleted. This offer is currently "${offer.status}".`,
+        });
+      }
+    } else {
+      // Customer: can only manage their own offers
+      if (offer.userId !== user.id) {
+        return res.status(403).json({ success: false, message: 'Access denied. You can only manage your own proposals.' });
+      }
     }
 
     await prisma.offer.delete({ where: { id } });

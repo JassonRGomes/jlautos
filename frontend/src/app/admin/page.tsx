@@ -803,6 +803,25 @@ export default function AdministrativePanel() {
     }
   };
 
+  const handleDeleteOffer = async (id: string) => {
+    if (!window.confirm('Delete this proposal? It will be permanently removed.')) return;
+    try {
+      setLoadingData(true);
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.delete(`${BACKEND_URL}/api/offers/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccessMsg('Proposal deleted successfully.');
+      syncLedgers();
+    } catch (err: any) {
+      console.error('Delete offer error:', err);
+      setErrorMsg(err.response?.data?.message || 'Failed to delete price proposal.');
+    } finally {
+      setLoadingData(false);
+      setTimeout(() => setSuccessMsg(''), 3000);
+    }
+  };
+
   // 7. Trigger Newsletter blast to customer registry list
   const handleTriggerNewsletter = async (vehicleId: string) => {
     if (!window.confirm('Trigger portfolio email blast for this stock item to all registered customer directories?')) return;
@@ -1441,6 +1460,7 @@ export default function AdministrativePanel() {
                         const canCancel = ['Approved', 'Modified by Dealer'].includes(booking.status);
                         const canModify = ['Pending Approval', 'Approved', 'Modified by Dealer'].includes(booking.status);
                         const canComplete = ['Approved', 'Modified by Dealer'].includes(booking.status);
+                        const canDelete = ['Completed', 'Cancelled', 'Rejected'].includes(booking.status);
 
                         return (
                           <tr key={booking.id} className="hover:bg-foreground/5 transition-colors">
@@ -1546,14 +1566,16 @@ export default function AdministrativePanel() {
                                   </button>
                                 )}
 
-                                <button
-                                  onClick={() => handleSoftDeleteBooking(booking.id)}
-                                  disabled={!!bookingActionLoading[booking.id]}
-                                  className="bg-black/40 hover:bg-red-950/20 disabled:opacity-50 text-text-muted hover:text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase cursor-pointer"
-                                  title="Archive / Soft Delete"
-                                >
-                                  Delete
-                                </button>
+                                {canDelete && (
+                                  <button
+                                    onClick={() => handleSoftDeleteBooking(booking.id)}
+                                    disabled={!!bookingActionLoading[booking.id]}
+                                    className="bg-black/40 hover:bg-red-950/20 disabled:opacity-50 text-text-muted hover:text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase cursor-pointer"
+                                    title="Archive / Soft Delete"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1679,7 +1701,16 @@ export default function AdministrativePanel() {
                                   </button>
                                 </div>
                               ) : (
-                                <span className="text-[10px] text-text-muted font-bold uppercase">Resolved</span>
+                                <div className="flex justify-end gap-2 items-center">
+                                  <span className="text-[10px] text-text-muted font-bold uppercase mr-2">Resolved</span>
+                                  <button
+                                    onClick={() => handleDeleteOffer(offer.id)}
+                                    className="bg-black/40 hover:bg-red-950/20 text-text-muted hover:text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase cursor-pointer transition-colors"
+                                    title="Permanently Delete Proposal"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               )}
                             </td>
 
