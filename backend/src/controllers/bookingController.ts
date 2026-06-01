@@ -6,6 +6,9 @@ import { sendBookingStatusSMSToCustomer } from '../services/smsService';
 // GET /bookings - List bookings (admin: all, user: own)
 export const getBookings = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
+  if (!user.id) {
+    return res.status(401).json({ success: false, message: 'User ID missing in token.' });
+  }
   const { status, vehicleId, page = '1', limit = '20' } = req.query;
 
   const where: any = {};
@@ -44,6 +47,9 @@ export const getBookings = async (req: AuthenticatedRequest, res: Response) => {
 // GET /api/bookings/my - Loads proposals submitted by the logged-in customer (or all if ADMIN)
 export const getMyBookings = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
+  if (!user.id) {
+    return res.status(401).json({ success: false, message: 'User ID missing in token.' });
+  }
   try {
     const where: any = {};
     if ((user.role || '').toUpperCase() !== 'ADMIN') {

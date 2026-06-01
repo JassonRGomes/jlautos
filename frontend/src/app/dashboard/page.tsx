@@ -493,17 +493,19 @@ function CustomerDashboardInner() {
             <span>Bookings Timeline ({bookings.length})</span>
           </button>
 
-          <button
-            onClick={() => { setActiveTab('offers'); fetchDashboardData(true); }}
-            className={`py-4 px-1 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
-              activeTab === 'offers'
-                ? 'border-accent text-accent'
-                : 'border-transparent text-text-muted hover:text-foreground'
-            }`}
-          >
-            <DollarSign size={15} />
-            <span>Proposals Pipeline ({offers.length})</span>
-          </button>
+          {user?.role?.toUpperCase() === 'ADMIN' && (
+            <button
+              onClick={() => { setActiveTab('offers'); fetchDashboardData(true); }}
+              className={`py-4 px-1 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
+                activeTab === 'offers'
+                  ? 'border-accent text-accent'
+                  : 'border-transparent text-text-muted hover:text-foreground'
+              }`}
+            >
+              <DollarSign size={15} />
+              <span>Proposals Pipeline ({offers.length})</span>
+            </button>
+          )}
         </div>
 
         {/* SECTION 3: TAB CONTAINER BODY */}

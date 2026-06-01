@@ -54,6 +54,9 @@ export const submitOffer = async (req: AuthenticatedRequest, res: Response) => {
 // GET /api/offers/manager - Loads ALL proposals for administrative evaluation (admin only)
 export const getOffersManager = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
+  if (!user.id) {
+    return res.status(401).json({ success: false, message: 'User ID missing in token.' });
+  }
   try {
     // Only admins can access this endpoint
     if ((user.role || '').toUpperCase() !== 'ADMIN') {
@@ -76,7 +79,9 @@ export const getOffersManager = async (req: AuthenticatedRequest, res: Response)
 // GET /api/offers/my - RULE 1: Customer only sees their own proposals
 export const getCustomerOffers = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
-  try {
+  if (!user.id) {
+    return res.status(401).json({ success: false, message: 'User ID missing in token.' });
+  }
     // Admins should not use this endpoint; return empty array
     if ((user.role || '').toUpperCase() === 'ADMIN') {
       return res.json({ success: true, data: [] });
