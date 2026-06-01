@@ -12,6 +12,9 @@ const router = Router();
 
 router.use(authenticateJWT);
 
+// GET / - Admin fetch all offers (admin only)
+router.get('/', requireAdmin, getOffersManager);
+
 router.post('/submit', submitOffer);
 router.get('/my', getCustomerOffers);
 router.get('/manager', requireAdmin, getOffersManager);

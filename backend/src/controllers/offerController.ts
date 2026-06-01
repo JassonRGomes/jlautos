@@ -55,10 +55,11 @@ export const submitOffer = async (req: AuthenticatedRequest, res: Response) => {
 export const getOffersManager = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
   try {
-    // If admin, return all offers. Otherwise, return only offers belonging to the authenticated user.
-    const whereClause = (user.role || '').toUpperCase() === 'ADMIN' ? {} : { userId: user.id };
+    // Only admins can access this endpoint
+    if ((user.role || '').toUpperCase() !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
+    }
     const offers = await prisma.offer.findMany({
-      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, name: true, email: true, phone: true } },
@@ -76,7 +77,11 @@ export const getOffersManager = async (req: AuthenticatedRequest, res: Response)
 export const getCustomerOffers = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
   try {
-    // Rule 1: Customers only see their own offers — filter strictly by userId
+    // Admins should not use this endpoint; return empty array
+    if ((user.role || '').toUpperCase() === 'ADMIN') {
+      return res.json({ success: true, data: [] });
+    }
+    // Regular users see only their own offers
     const offers = await prisma.offer.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },

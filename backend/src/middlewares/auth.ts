@@ -62,7 +62,7 @@ export const requireAdmin = (
   res: Response,
   next: NextFunction
 ) => {
-  if (!req.user || req.user.role !== 'ADMIN') {
+  if (!req.user || (req.user.role || '').toUpperCase() !== 'ADMIN') {
     return res.status(403).json({ message: 'Access denied. Administrator privileges required.' });
   }
   next();
