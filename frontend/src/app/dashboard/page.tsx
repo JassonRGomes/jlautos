@@ -153,7 +153,9 @@ function CustomerDashboardInner() {
       }
 
       // C. Fetch Bookings
-      const bookingRes = await axios.get(`${BACKEND_URL}/api/bookings/my?_t=${ts}`, {
+      const roleUpper = (user.role || '').toUpperCase();
+      const bookingUrl = roleUpper === 'ADMIN' ? `${BACKEND_URL}/api/bookings?_t=${ts}` : `${BACKEND_URL}/api/bookings/my?_t=${ts}`;
+      const bookingRes = await axios.get(bookingUrl, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (bookingRes.data && bookingRes.data.data) {
@@ -175,7 +177,9 @@ function CustomerDashboardInner() {
 
 
       // D. Fetch Offers
-      const offerRes = await axios.get(`${BACKEND_URL}/api/offers/my?_t=${ts}`, {
+      const roleUpper = (user.role || '').toUpperCase();
+      const offerUrl = roleUpper === 'ADMIN' ? `${BACKEND_URL}/api/offers?_t=${ts}` : `${BACKEND_URL}/api/offers/my?_t=${ts}`;
+      const offerRes = await axios.get(offerUrl, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (offerRes.data && offerRes.data.data) {
@@ -204,7 +208,10 @@ function CustomerDashboardInner() {
     if (!loadingAuth && !user) {
       router.push('/login');
     } else if (user) {
-      if (user.role === 'ADMIN') {
+      const roleUpper = (user.role || '').toUpperCase();
+        if (roleUpper === 'ADMIN') {
+          router.replace('/admin');
+          return;
         router.replace('/admin');
         return;
       }
