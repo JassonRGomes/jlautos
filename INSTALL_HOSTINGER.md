@@ -26,15 +26,15 @@
 ### 1. Conectar via SSH
 No hPanel → SSH Access, obtenha as credenciais e conecte:
 ```bash
-ssh u373012508@lightcyan-shark-136321.hostingersite.com -p 65002
+ssh user_name@site_name.com -p 65002
 ```
 
 ### 2. Fazer upload do projeto
-No hPanel, use o **File Manager** ou **FTP** para enviar a pasta `backend/` para o servidor (ex: `~/domains/lightcyan-shark-136321.hostingersite.com/public_html/backend/`).
+No hPanel, use o **File Manager** ou **FTP** para enviar a pasta `backend/` para o servidor (ex: `~/domains/site_name.com/public_html/backend/`).
 
 ### 3. Executar o setup automático via SSH
 ```bash
-cd ~/domains/lightcyan-shark-136321.hostingersite.com/public_html
+cd ~/domains/site_name/public_html
 bash scripts/setup-hostinger.sh
 ```
 
@@ -84,7 +84,7 @@ Resposta esperada:
 
 ## Estrutura do Banco de Dados
 
-O Prisma vai criar automaticamente as seguintes tabelas no banco `u373012508_JLautos`:
+O Prisma vai criar automaticamente as seguintes tabelas no banco `db_name`:
 
 - `User` — Usuários do sistema (admin, vendedores)
 - `Session` — Sessões JWT
