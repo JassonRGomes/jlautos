@@ -158,6 +158,10 @@ export const deleteOffer = async (req: AuthenticatedRequest, res: Response) => {
       if (offer.userId !== user.id) {
         return res.status(403).json({ success: false, message: 'Access denied. You can only manage your own proposals.' });
       }
+      // Customer can delete only UNDER_REVIEW offers
+      if (offer.status !== 'UNDER_REVIEW') {
+        return res.status(400).json({ success: false, message: `Only offers under review can be deleted. Current status is "${offer.status}".` });
+      }
     }
 
     await prisma.offer.delete({ where: { id } });

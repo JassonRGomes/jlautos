@@ -159,31 +159,30 @@ function CustomerDashboardInner() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (bookingRes.data && bookingRes.data.data) {
-        const parsed = bookingRes.data.data.map((b: any) => {
+        let parsed = bookingRes.data.data.map((b: any) => {
           let imgs = [];
           if (b.vehicle && typeof b.vehicle.images === 'string') {
             try { imgs = JSON.parse(b.vehicle.images); } catch (e) { imgs = [b.vehicle.images]; }
-          } else if (b.vehicle && b.vehicle.images) { 
-            imgs = b.vehicle.images; 
+          } else if (b.vehicle && b.vehicle.images) {
+            imgs = b.vehicle.images;
           }
-          
-          return { 
-            ...b, 
-            vehicle: { ...b.vehicle, images: imgs } 
-          };
+          return { ...b, vehicle: { ...b.vehicle, images: imgs } };
         });
+        // For customers, ensure only own bookings are displayed
+        if ((user?.role || '').toUpperCase() !== 'ADMIN') {
+          parsed = parsed.filter((b) => b.user && b.user.id === user.id);
+        }
         setBookings(parsed);
       }
 
 
       // D. Fetch Offers
-      const roleUpper = (user.role || '').toUpperCase();
       const offerUrl = roleUpper === 'ADMIN' ? `${BACKEND_URL}/api/offers?_t=${ts}` : `${BACKEND_URL}/api/offers/my?_t=${ts}`;
       const offerRes = await axios.get(offerUrl, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (offerRes.data && offerRes.data.data) {
-        const parsedOffers = offerRes.data.data.map((o: any) => {
+        let parsedOffers = offerRes.data.data.map((o: any) => {
           let imgs = [];
           if (o.vehicle && typeof o.vehicle.images === 'string') {
             try { imgs = JSON.parse(o.vehicle.images); } catch (e) { imgs = [o.vehicle.images]; }
@@ -192,6 +191,10 @@ function CustomerDashboardInner() {
           }
           return { ...o, vehicle: { ...o.vehicle, images: imgs } };
         });
+        // For customers, ensure only own offers are displayed (defense in depth)
+        if ((user?.role || '').toUpperCase() !== 'ADMIN') {
+          parsedOffers = parsedOffers.filter((o) => o.user && o.user.id === user.id);
+        }
         setOffers(parsedOffers);
       }
 
