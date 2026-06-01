@@ -31,7 +31,6 @@ model User {
   customerTestDrives TestDrive[]   @relation("CustomerTestDrives")
   salesTestDrives    TestDrive[]   @relation("SalesRepTestDrives")
   activityLogs       ActivityLog[] @relation("UserActivityLogs")
-  testDriveBookings  TestDriveBooking[] @relation("CustomerTestDriveBookings")
 }
 
 model Session {
