@@ -639,12 +639,21 @@ export default function Home() {
                         >
                           View Details
                         </Link>
-                        <Link
-                          href={`/details?id=${vehicle.id}&tab=offer`}
-                          className="flex-1 border border-card-border text-center py-2.5 rounded-md text-[10px] font-bold uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
-                        >
-                          Quick Offer
-                        </Link>
+                         {user?.role?.toUpperCase() !== 'ADMIN' ? (
+                           <Link
+                             href={`/details?id=${vehicle.id}&tab=offer`}
+                             className="flex-1 border border-card-border text-center py-2.5 rounded-md text-[10px] font-bold uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
+                           >
+                             Quick Offer
+                           </Link>
+                         ) : (
+                           <button
+                             disabled
+                             className="flex-1 border border-card-border text-center py-2.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gray-800 text-gray-500 cursor-not-allowed"
+                           >
+                             Quick Offer
+                           </button>
+                         )}
                       </div>
 
                       {/* SOCIAL ACTIONS BAR */}
