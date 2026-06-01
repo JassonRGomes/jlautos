@@ -108,6 +108,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
   // Offer Modal States
   const [offerOpen, setOfferOpen] = useState(false);
+  const [adminBlockOpen, setAdminBlockOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState('');
   const [offerLoading, setOfferLoading] = useState(false);
   const [offerSuccess, setOfferSuccess] = useState('');
@@ -208,9 +209,14 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
   // Auto-open offer modal if ?tab=offer is in the URL (e.g. from Quick Offer button)
   useEffect(() => {
     if (nextSearchParams.get('tab') === 'offer') {
-      setOfferOpen(true);
+      if (user?.role === 'ADMIN') {
+        setAdminBlockOpen(true);
+      } else if (user) {
+        setOfferOpen(true);
+      }
+      // If user is null (still loading), do nothing — the button click handles it
     }
-  }, [nextSearchParams]);
+  }, [nextSearchParams, user]);
 
   // 3. Toggle Bookmark
   const handleToggleFavorite = async () => {
@@ -300,6 +306,12 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
     e.preventDefault();
     if (!user) {
       router.push('/login');
+      return;
+    }
+
+    if (user.role === 'ADMIN') {
+      setOfferOpen(false);
+      setAdminBlockOpen(true);
       return;
     }
 
@@ -544,7 +556,15 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
               {vehicle.status === 'ON_SALE' && (
                 <button
-                  onClick={() => setOfferOpen(true)}
+                  onClick={() => {
+                    if (!user) {
+                      router.push('/login');
+                    } else if (user.role === 'ADMIN') {
+                      setAdminBlockOpen(true);
+                    } else {
+                      setOfferOpen(true);
+                    }
+                  }}
                   className="flex items-center gap-1.5 px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white transition-all shadow-sm"
                 >
                   <DollarSign size={14} className="text-accent" />
@@ -769,8 +789,37 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
         </dialog>
       )}
 
+      {/* 4. ADMIN BLOCKED OFFER POPUP */}
+      {adminBlockOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-card border border-red-500/30 w-full max-w-sm p-6 rounded-2xl shadow-2xl text-foreground space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={20} className="text-red-500" />
+              </div>
+              <div>
+                <p className="text-[10px] font-extrabold text-red-500 uppercase tracking-widest mb-0.5">Ação Restrita</p>
+                <h3 className="text-base font-bold text-foreground">Acesso Negado</h3>
+              </div>
+            </div>
+            <p className="text-sm text-text-muted leading-relaxed">
+              Administradores <strong className="text-foreground">não estão autorizados</strong> a submeter propostas de preço nos veículos da concessionária.
+            </p>
+            <p className="text-xs text-text-muted/70 leading-relaxed">
+              Esta restrição protege a integridade das negociações entre clientes e o dealership.
+            </p>
+            <button
+              onClick={() => setAdminBlockOpen(false)}
+              className="w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold uppercase text-xs py-2.5 rounded-lg transition-colors"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 4. MAKE AN OFFER MODAL (GLASSMORPHIC DRAWER) */}
-      {offerOpen && (
+      {offerOpen && user?.role !== 'ADMIN' && (
         <dialog className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 w-full h-full" open>
           <div className="bg-card border border-card-border w-full max-w-md p-6 rounded-lg shadow-xl animate-fade-in text-foreground relative glassmorphism">
             
