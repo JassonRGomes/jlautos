@@ -43,7 +43,6 @@ const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 const dealershipRoutes_1 = __importDefault(require("./routes/dealershipRoutes"));
 const availabilitySlotRoutes_1 = __importDefault(require("./routes/availabilitySlotRoutes"));
 const settingsRoutes_1 = __importDefault(require("./routes/settingsRoutes"));
-const offerRoutes_1 = __importDefault(require("./routes/offerRoutes"));
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -107,7 +106,6 @@ app.use('/api/uploads', uploadRoutes_1.default);
 app.use('/api/dealerships', dealershipRoutes_1.default);
 app.use('/api/availability-slots', availabilitySlotRoutes_1.default);
 app.use('/api/settings', settingsRoutes_1.default);
-app.use('/api/offers', offerRoutes_1.default);
 // 404 Handler for undefined API routes
 app.use('/api/*', (req, res) => {
     res.status(404).json({

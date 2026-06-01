@@ -9,6 +9,30 @@ const auth_1 = require("../middlewares/auth");
 const pdf_1 = require("../utils/pdf");
 const excel_1 = require("../utils/excel");
 const router = (0, express_1.Router)();
+// GET /api/settings/fix-db — Hotfix to add missing columns to Dealership table if schema is out of sync
+router.get('/fix-db', async (req, res) => {
+    try {
+        await db_1.default.$executeRawUnsafe(`
+      ALTER TABLE \`Dealership\` 
+      ADD COLUMN \`whatsappNumber\` VARCHAR(191) NULL,
+      ADD COLUMN \`logoUrl\` VARCHAR(191) NULL,
+      ADD COLUMN \`operatingHours\` TEXT NULL;
+    `);
+        // 3. Output Bookings explicitly for debugging
+        const bookings = await db_1.default.booking.findMany({});
+        return res.json({
+            success: true,
+            message: `Database fixed successfully! Found ${bookings.length} bookings.`,
+            debug_bookings: bookings
+        });
+    }
+    catch (error) {
+        if (error.message.includes('Duplicate column')) {
+            return res.status(200).send("Columns already exist, database is fine.");
+        }
+        return res.status(500).send("Error fixing database: " + error.message);
+    }
+});
 // GET /api/settings — Returns public dealership settings for the frontend
 // Called by ThemeAuthContext on every page load
 router.get('/', async (_req, res) => {
@@ -60,14 +84,14 @@ router.get('/', async (_req, res) => {
         return res.status(500).json({ message: 'Failed to load dealership settings.', error: error.message });
     }
 });
-// GET /api/settings/customers — Loads registered customer profiles with their bookings/offers counts
+// GET /api/settings/customers — Loads registered customer profiles with their bookings counts
 router.get('/customers', auth_1.authenticateJWT, auth_1.requireAdmin, async (_req, res) => {
     try {
         const customers = await db_1.default.user.findMany({
             where: { role: 'CUSTOMER' },
             include: {
                 _count: {
-                    select: { bookings: true, offers: true },
+                    select: { bookings: true },
                 },
             },
         });

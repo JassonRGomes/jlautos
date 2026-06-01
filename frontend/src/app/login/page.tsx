@@ -64,7 +64,7 @@ export default function Login() {
             VIP Portal <span className="text-accent">Sign In</span>
           </h2>
           <p className="mt-2 text-sm text-text-muted">
-            Access your custom J&L Autos portfolio, bookings, and active proposals.
+            Access your custom J&L Autos portfolio and VIP bookings.
           </p>
         </div>
 

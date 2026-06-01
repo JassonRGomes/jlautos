@@ -106,12 +106,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
   const [bookingError, setBookingError] = useState('');
   const [minDate, setMinDate] = useState('');
 
-  // Offer Modal States
-  const [offerOpen, setOfferOpen] = useState(false);
-  const [offerAmount, setOfferAmount] = useState('');
-  const [offerLoading, setOfferLoading] = useState(false);
-  const [offerSuccess, setOfferSuccess] = useState('');
-  const [offerError, setOfferError] = useState('');
+
 
   // Share Modal States
   const [shareOpen, setShareOpen] = useState(false);
@@ -148,7 +143,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
         setVehicle({ ...data, images: imgArr });
         setLikeCount(Math.floor(Math.random() * 30) + 15);
-        setOfferAmount(String(data.price));
+
       } else {
         setError('Luxury vehicle listing not found.');
       }
@@ -205,12 +200,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
     }
   }, [id, bookingDate]);
 
-  // Auto-open offer modal if ?tab=offer is in the URL (e.g. from Quick Offer button)
-  useEffect(() => {
-    if (nextSearchParams.get('tab') === 'offer') {
-      setOfferOpen(true);
-    }
-  }, [nextSearchParams]);
+
 
   // 3. Toggle Bookmark
   const handleToggleFavorite = async () => {
@@ -295,45 +285,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
     }
   };
 
-  // 6. Submit Acquisition Pricing Proposal (Make an Offer)
-  const handleSendOffer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      router.push('/login');
-      return;
-    }
 
-    const value = parseFloat(offerAmount);
-    if (isNaN(value) || value <= 0) {
-      setOfferError('Please supply a valid proposal acquisition budget.');
-      return;
-    }
-
-    try {
-      setOfferLoading(true);
-      setOfferError('');
-      setOfferSuccess('');
-
-      const res = await axios.post(`${BACKEND_URL}/api/offers/submit`, {
-        vehicleId: id,
-        offerAmount: value,
-      });
-
-      setOfferSuccess(
-        res.data.message ||
-        (res.data.data ? 'Acquisition proposal submitted for evaluation.' : 'Proposal received.')
-      );
-      setTimeout(() => {
-        setOfferAmount('');
-        window.location.href = '/dashboard?tab=offers';
-      }, 2000);
-    } catch (err: any) {
-      console.error('Offer error:', err);
-      setOfferError(err.response?.data?.message || 'Failed to submit negotiation proposal.');
-    } finally {
-      setOfferLoading(false);
-    }
-  };
 
   // 7. Clipboard broadcast
   const handleCopyLink = () => {
@@ -542,15 +494,6 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
                 <span>Broadcast Share</span>
               </button>
 
-              {vehicle.status === 'ON_SALE' && (
-                <button
-                  onClick={() => setOfferOpen(true)}
-                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white transition-all shadow-sm"
-                >
-                  <DollarSign size={14} className="text-accent" />
-                  <span>Make an Offer</span>
-                </button>
-              )}
             </div>
 
           </div>
@@ -870,72 +813,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
         </dialog>
       )}
 
-      {/* 4. MAKE AN OFFER MODAL (GLASSMORPHIC DRAWER) */}
-      {offerOpen && (
-        <dialog className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 w-full h-full" open>
-          <div className="bg-card border border-card-border w-full max-w-md p-6 rounded-lg shadow-xl animate-fade-in text-foreground relative glassmorphism">
-            
-            <div className="flex justify-between items-center border-b border-card-border pb-3 mb-4">
-              <div className="flex flex-col">
-                <span className="text-[9px] font-bold text-accent uppercase tracking-widest">PROPOSAL LEDGER</span>
-                <h3 className="font-extrabold text-base uppercase tracking-tight text-foreground">
-                  Submit Acquisition Proposal
-                </h3>
-              </div>
-              <button onClick={() => setOfferOpen(false)} className="text-text-muted hover:text-foreground p-1">
-                <X size={18} />
-              </button>
-            </div>
 
-            <form onSubmit={handleSendOffer} className="space-y-4">
-              <p className="text-xs text-text-muted leading-relaxed font-light">
-                Offer custom cash or financing acquisition targets to our sales concierge team. Accepted proposals immediately lock the car status as Reserved for authentication.
-              </p>
-
-              <div className="bg-background border border-card-border p-3.5 rounded flex items-center justify-between text-xs text-text-muted">
-                <span>Reserve Showroom Price:</span>
-                <strong className="text-foreground text-sm font-bold">${Number(vehicle.price).toLocaleString()}</strong>
-              </div>
-
-              <div className="flex flex-col space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Proposal Target Value (USD)</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500 font-bold">$</div>
-                  <input
-                    type="number"
-                    required
-                    value={offerAmount}
-                    onChange={(e) => setOfferAmount(e.target.value)}
-                    className="w-full bg-background border border-card-border text-foreground pl-7 pr-3.5 py-2.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-accent font-bold"
-                  />
-                </div>
-              </div>
-
-              {offerError && (
-                <div className="flex gap-2 items-start bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded text-xs">
-                  <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
-                  <span>{offerError}</span>
-                </div>
-              )}
-
-              {offerSuccess && (
-                <div className="flex gap-2 items-start bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 p-3 rounded text-xs">
-                  <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5" />
-                  <span>{offerSuccess}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={offerLoading}
-                className="w-full bg-accent hover:bg-accent-hover text-white py-3 rounded-md text-xs font-bold uppercase tracking-widest transition-all shadow-md shadow-accent/25"
-              >
-                {offerLoading ? 'Broadcasting Proposal...' : 'Transmit Acquisition Offer'}
-              </button>
-            </form>
-          </div>
-        </dialog>
-      )}
 
       {/* 5. BROADCAST SHARE MODAL */}
       {shareOpen && (

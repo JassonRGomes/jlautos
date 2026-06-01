@@ -64,7 +64,7 @@ export default function Register() {
             Create VIP <span className="text-accent">Profile</span>
           </h2>
           <p className="mt-2 text-sm text-text-muted">
-            Register to unlock bespoke offers, vehicle favorites, and test drive booking calendar.
+            Register to unlock vehicle favorites, and test drive booking calendar.
           </p>
         </div>
 

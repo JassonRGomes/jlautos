@@ -281,7 +281,7 @@ const blastVehicleNewsletter = async (data) => {
             </div>
 
             <div style="text-align: center;">
-              <p style="font-size: 13px; color: #8e8e93; font-style: italic; margin-bottom: 20px;">This flagship model is now open for private test drive bookings and luxury offers.</p>
+              <p style="font-size: 13px; color: #8e8e93; font-style: italic; margin-bottom: 20px;">This flagship model is now open for private test drive bookings.</p>
             </div>
 
             <div class="btn-container">

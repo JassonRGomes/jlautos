@@ -73,17 +73,6 @@ interface Booking {
   createdAt: string;
 }
 
-interface Offer {
-  id: string;
-  userId: string;
-  user: { name: string; email: string; phone?: string };
-  vehicleId: string;
-  vehicle: Vehicle;
-  offerAmount: number;
-  status: 'UNDER_REVIEW' | 'ACCEPTED' | 'DECLINED';
-  createdAt: string;
-}
-
 interface Customer {
   id: string;
   email: string;
@@ -92,12 +81,11 @@ interface Customer {
   createdAt: string;
   _count?: {
     bookings: number;
-    offers: number;
     favorites: number;
   };
 }
 
-type AdminTab = 'inventory' | 'bookings' | 'offers' | 'newsletter' | 'reports' | 'settings';
+type AdminTab = 'inventory' | 'bookings' | 'newsletter' | 'reports' | 'settings';
 
 export default function AdministrativePanel() {
   const router = useRouter();
@@ -121,7 +109,7 @@ export default function AdministrativePanel() {
 
   // CRM Databases states
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [offers, setOffers] = useState<Offer[]>([]);
+
   const [customers, setCustomers] = useState<Customer[]>([]);
 
   // Inventory CMS Form states
@@ -230,22 +218,6 @@ export default function AdministrativePanel() {
           return { ...b, vehicle: b.vehicle ? { ...b.vehicle, images: imgs } : null };
         });
         setBookings(parsedBookings);
-      }
-
-      // C. Sync Offers
-      const offerRes = await axios.get(`${BACKEND_URL}/api/offers/manager?_t=${ts}`);
-      const offersRaw = offerRes.data?.offers || offerRes.data?.data;
-      if (offersRaw) {
-        const parsedOffers = offersRaw.map((o: any) => {
-          let imgs = [];
-          if (o.vehicle && typeof o.vehicle.images === 'string') {
-            try { imgs = JSON.parse(o.vehicle.images); } catch (e) { imgs = [o.vehicle.images]; }
-          } else if (o.vehicle && o.vehicle.images) { 
-            imgs = o.vehicle.images; 
-          }
-          return { ...o, vehicle: o.vehicle ? { ...o.vehicle, images: imgs } : null };
-        });
-        setOffers(parsedOffers);
       }
 
       // D. Sync Customers Directories
@@ -555,22 +527,6 @@ export default function AdministrativePanel() {
     }
   };
 
-  // 6. Resolve Customer Proposal Negotiation
-  const handleUpdateOfferStatus = async (id: string, newStatus: 'ACCEPTED' | 'DECLINED') => {
-    try {
-      setLoadingData(true);
-      await axios.patch(`${BACKEND_URL}/api/offers/${id}/status`, { status: newStatus });
-      setSuccessMsg(`Acquisition proposal status resolved: ${newStatus}`);
-      syncLedgers();
-    } catch (err: any) {
-      console.error('Offer resolve error:', err);
-      setErrorMsg('Failed to resolve price proposal.');
-    } finally {
-      setLoadingData(false);
-      setTimeout(() => setSuccessMsg(''), 3000);
-    }
-  };
-
   // 7. Trigger Newsletter blast to customer registry list
   const handleTriggerNewsletter = async (vehicleId: string) => {
     if (!window.confirm('Trigger portfolio email blast for this stock item to all registered customer directories?')) return;
@@ -689,14 +645,6 @@ export default function AdministrativePanel() {
             <Calendar size={15} /> CRM Bookings ({bookings.length})
           </button>
 
-          <button
-            onClick={() => setActiveTab('offers')}
-            className={`py-4 px-1 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
-              activeTab === 'offers' ? 'border-accent text-accent' : 'border-transparent text-text-muted hover:text-foreground'
-            }`}
-          >
-            <DollarSign size={15} /> Client Proposals ({offers.length})
-          </button>
 
           <button
             onClick={() => setActiveTab('newsletter')}
@@ -1268,131 +1216,6 @@ export default function AdministrativePanel() {
             </div>
           )}
 
-          {/* TAB 3: PRICE PROPOSALS CLIENT OFFERS */}
-          {activeTab === 'offers' && (
-            <div className="bg-card border border-card-border p-6 rounded-xl space-y-6">
-              <div className="border-b border-card-border pb-3 flex justify-between items-center">
-                <h3 className="font-extrabold text-base uppercase text-foreground">
-                  Proposals & Negotiations Pipeline ({offers.length})
-                </h3>
-              </div>
-
-              {offers.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="border-b border-card-border text-text-muted uppercase font-bold tracking-wider">
-                        <th className="py-3 px-4">Client Detail</th>
-                        <th className="py-3 px-4">Asset Details</th>
-                        <th className="py-3 px-4">Valuation Price</th>
-                        <th className="py-3 px-4">Acquisition Offer</th>
-                        <th className="py-3 px-4">Differential</th>
-                        <th className="py-3 px-4">Negotiation status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-card-border/60">
-                      {offers.map((offer) => {
-                        const discount = Math.round(((offer.vehicle.price - offer.offerAmount) / offer.vehicle.price) * 100);
-                        const isUnder = offer.offerAmount < offer.vehicle.price;
-
-                        return (
-                          <tr key={offer.id} className="hover:bg-foreground/5 transition-colors">
-                            
-                            {/* Client Detail */}
-                            <td className="py-3.5 px-4">
-                              <div className="font-bold text-foreground">{offer.user.name}</div>
-                              <div className="text-[10px] text-text-muted">{offer.user.email} &bull; {offer.user.phone || 'No phone'}</div>
-                            </td>
-
-                            {/* Asset Detail */}
-                            <td className="py-3.5 px-4">
-                              <span className="font-semibold text-foreground">
-                                {offer.vehicle.year} {offer.vehicle.make} {offer.vehicle.model}
-                              </span>
-                            </td>
-
-                            {/* Book Valuation */}
-                            <td className="py-3.5 px-4 font-mono">
-                              ${Number(offer.vehicle.price).toLocaleString()}
-                            </td>
-
-                            {/* Acquisition offer */}
-                            <td className="py-3.5 px-4 font-mono font-bold text-foreground">
-                              ${Number(offer.offerAmount).toLocaleString()}
-                            </td>
-
-                            {/* Differential */}
-                            <td className="py-3.5 px-4">
-                              {isUnder ? (
-                                <span className="text-red-500 font-semibold bg-red-500/5 px-2 py-0.5 rounded border border-red-500/10 text-[10px]">
-                                  -{discount}% Under valuation
-                                </span>
-                              ) : (
-                                <span className="text-emerald-500 font-semibold bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10 text-[10px]">
-                                  Bargain Price match
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Status */}
-                            <td className="py-3.5 px-4 font-bold">
-                              {offer.status === 'UNDER_REVIEW' && (
-                                <span className="px-2 py-0.5 text-[9px] font-bold bg-blue-500/10 text-blue-500 rounded border border-blue-500/20 uppercase">
-                                  UNDER REVIEW
-                                </span>
-                              )}
-                              {offer.status === 'ACCEPTED' && (
-                                <span className="px-2 py-0.5 text-[9px] font-bold bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20 uppercase">
-                                  ACCEPTED & LOCK
-                                </span>
-                              )}
-                              {offer.status === 'DECLINED' && (
-                                <span className="px-2 py-0.5 text-[9px] font-bold bg-red-500/10 text-red-500 rounded border border-red-500/20 uppercase">
-                                  DECLINED
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Actions */}
-                            <td className="py-3.5 px-4 text-right">
-                              {offer.status === 'UNDER_REVIEW' ? (
-                                <div className="flex justify-end gap-2">
-                                  <button
-                                    onClick={() => handleUpdateOfferStatus(offer.id, 'ACCEPTED')}
-                                    className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black px-4 py-2 rounded-md transition-all flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:scale-[1.02]"
-                                    title="Accept proposal and Reserve asset"
-                                  >
-                                    <Check size={13} /> Approve
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateOfferStatus(offer.id, 'DECLINED')}
-                                    className="bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 text-red-500 border border-red-500/30 px-4 py-2 rounded-md transition-all flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider hover:scale-[1.02]"
-                                    title="Decline price offer"
-                                  >
-                                    <X size={13} /> Reject
-                                  </button>
-                                </div>
-                              ) : (
-                                <span className="text-[10px] text-text-muted font-bold uppercase">Resolved</span>
-                              )}
-                            </td>
-
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-12 bg-background border border-card-border rounded-lg">
-                  <DollarSign size={36} className="mx-auto text-text-muted mb-3 opacity-40" />
-                  <h4 className="font-bold text-sm uppercase text-foreground">No proposals registered</h4>
-                  <p className="text-xs text-text-muted">No pricing proposals transmitted yet.</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* TAB 4: NEWSLETTER BLAST HUB */}
           {activeTab === 'newsletter' && (
@@ -1559,7 +1382,6 @@ export default function AdministrativePanel() {
                           <th className="py-2.5">Join Date</th>
                           <th className="py-2.5 text-center">Faves</th>
                           <th className="py-2.5 text-center">VIP Bookings</th>
-                          <th className="py-2.5 text-center">Submitted Offers</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-card-border/40">
@@ -1570,7 +1392,6 @@ export default function AdministrativePanel() {
                             <td className="py-3 text-text-muted">{new Date(c.createdAt).toLocaleDateString()}</td>
                             <td className="py-3 text-center font-bold">{c._count?.favorites || 0}</td>
                             <td className="py-3 text-center font-bold text-accent">{c._count?.bookings || 0}</td>
-                            <td className="py-3 text-center font-bold">{c._count?.offers || 0}</td>
                           </tr>
                         ))}
                       </tbody>

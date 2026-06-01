@@ -110,7 +110,9 @@ const getProfile = async (req, res) => {
         });
         if (!user)
             return res.status(404).json({ message: 'User not found.' });
-        return res.status(200).json({ user });
+        // Generate a fresh token so the frontend can recover it if localStorage was wiped
+        const newToken = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
+        return res.status(200).json({ user, token: newToken });
     }
     catch (error) {
         return res.status(500).json({ message: 'Error fetching profile.', error: error.message });

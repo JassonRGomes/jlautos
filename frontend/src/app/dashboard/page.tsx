@@ -70,16 +70,7 @@ interface Booking {
   createdAt: string;
 }
 
-interface Offer {
-  id: string;
-  vehicleId: string;
-  vehicle: Vehicle;
-  offerAmount: number;
-  status: 'UNDER_REVIEW' | 'ACCEPTED' | 'DECLINED';
-  createdAt: string;
-}
-
-type TabType = 'wishlist' | 'searches' | 'bookings' | 'offers';
+type TabType = 'wishlist' | 'searches' | 'bookings';
 
 function CustomerDashboardInner() {
   const router = useRouter();
@@ -89,19 +80,19 @@ function CustomerDashboardInner() {
 
   // Read initial tab from URL query param (e.g. /dashboard?tab=bookings)
   const tabParam = searchParams.get('tab') as TabType | null;
-  const [activeTab, setActiveTab] = useState<TabType>(tabParam && ['wishlist','searches','bookings','offers'].includes(tabParam) ? tabParam : 'wishlist');
+  const [activeTab, setActiveTab] = useState<TabType>(tabParam && ['wishlist','searches','bookings'].includes(tabParam) ? tabParam : 'wishlist');
 
   // Sync tab when URL param changes (e.g. after router.push)
   useEffect(() => {
     const t = searchParams.get('tab') as TabType | null;
-    if (t && ['wishlist', 'searches', 'bookings', 'offers'].includes(t)) {
+    if (t && ['wishlist', 'searches', 'bookings'].includes(t)) {
       setActiveTab(t);
     }
   }, [searchParams]);
   const [favorites, setFavorites] = useState<Vehicle[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [offers, setOffers] = useState<Offer[]>([]);
+
 
   // Page loading & errors
   const [loadingData, setLoadingData] = useState(false);
@@ -152,20 +143,7 @@ function CustomerDashboardInner() {
         setBookings(parsed);
       }
 
-      // D. Fetch Offers
-      const offerRes = await axios.get(`${BACKEND_URL}/api/offers/my?_t=${ts}`);
-      if (offerRes.data && offerRes.data.data) {
-        const parsedOffers = offerRes.data.data.map((o: any) => {
-          let imgs = [];
-          if (o.vehicle && typeof o.vehicle.images === 'string') {
-            try { imgs = JSON.parse(o.vehicle.images); } catch (e) { imgs = [o.vehicle.images]; }
-          } else if (o.vehicle && o.vehicle.images) { 
-            imgs = o.vehicle.images; 
-          }
-          return { ...o, vehicle: { ...o.vehicle, images: imgs } };
-        });
-        setOffers(parsedOffers);
-      }
+
 
     } catch (err: any) {
       console.error('Failed to load dashboard statistics:', err);
@@ -231,18 +209,7 @@ function CustomerDashboardInner() {
     }
   };
 
-  const handleDeleteOffer = async (offerId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!window.confirm('Are you sure you want to cancel this proposal?')) return;
-    try {
-      await axios.delete(`${BACKEND_URL}/api/offers/${offerId}`);
-      setOffers((prev) => prev.filter((o) => o.id !== offerId));
-    } catch (err) {
-      console.error('Failed to cancel proposal:', err);
-      alert('Failed to cancel the proposal. Please try again.');
-    }
-  };
+
 
   if (loadingAuth || (!user && !loadingAuth)) {
     return (
@@ -291,10 +258,7 @@ function CustomerDashboardInner() {
                 <span className="text-xl sm:text-2xl font-black text-foreground block">{bookings.length}</span>
                 <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mt-0.5">VIP Bookings</span>
               </div>
-              <div className="px-2 sm:px-6">
-                <span className="text-xl sm:text-2xl font-black text-foreground block">{offers.length}</span>
-                <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mt-0.5">Offers</span>
-              </div>
+
             </div>
 
             {/* Dashboard Quick Actions */}
@@ -353,17 +317,6 @@ function CustomerDashboardInner() {
             <span>Bookings Timeline ({bookings.length})</span>
           </button>
 
-          <button
-            onClick={() => { setActiveTab('offers'); fetchDashboardData(true); }}
-            className={`py-4 px-1 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
-              activeTab === 'offers'
-                ? 'border-accent text-accent'
-                : 'border-transparent text-text-muted hover:text-foreground'
-            }`}
-          >
-            <DollarSign size={15} />
-            <span>Proposals Pipeline ({offers.length})</span>
-          </button>
         </div>
 
         {/* SECTION 3: TAB CONTAINER BODY */}
@@ -636,109 +589,7 @@ function CustomerDashboardInner() {
               </div>
             )}
 
-            {/* TAB D: PROPOSALS PIPELINE */}
-            {activeTab === 'offers' && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {user?.role === 'ADMIN' && offers.length > 0 && (
-                  <div className="mb-4 inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                    <CheckCircle2 size={12} /> Global Database Sync Active
-                  </div>
-                )}
 
-                {offers.length > 0 ? (
-                  <div className="relative border-l-2 border-card-border/60 ml-4 space-y-6 py-2">
-                    {offers.map((offer) => {
-                      const img = offer.vehicle?.images?.[0] ? getImageUrl(offer.vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200') : 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200';
-                      return (
-                        <div key={offer.id} className="relative pl-8 group">
-                          
-                          {/* Sync Dot indicator */}
-                          <div className={`absolute -left-[9px] top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-4 bg-background transition-colors shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
-                            offer.status === 'ACCEPTED' ? 'border-emerald-500' :
-                            offer.status === 'DECLINED' ? 'border-red-500' :
-                            'border-amber-500'
-                          }`} />
-
-                          <div className="bg-card hover:bg-card-hover border border-card-border p-5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all duration-300 shadow-sm hover:shadow-md">
-                            <div className="flex items-center gap-5">
-                              <div className="relative w-20 h-14 flex-shrink-0 rounded-md overflow-hidden bg-zinc-950 border border-card-border shadow-inner">
-                                <Image
-                                  src={img}
-                                  alt={offer.vehicle ? `${offer.vehicle.make} ${offer.vehicle.model}` : 'Vehicle Deleted'}
-                                  fill
-                                  sizes="80px"
-                                  className="object-cover group-hover:scale-110 transition-transform duration-500"
-                                />
-                              </div>
-                              <div>
-                                <h4 className="font-black text-base uppercase text-foreground tracking-tight">
-                                  {offer.vehicle ? `${offer.vehicle.make} ${offer.vehicle.model}` : <span className="text-red-500">Vehicle Deleted</span>}
-                                </h4>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-text-muted mt-1.5 font-medium">
-                                  <span className="flex items-center gap-1.5 bg-background px-2 py-1 rounded border border-card-border">
-                                    <Calendar size={12} className="text-accent" />
-                                    {new Date(offer.createdAt).toLocaleDateString('en-US', {
-                                      weekday: 'short', month: 'short', day: 'numeric'
-                                    })}
-                                  </span>
-                                  <span className="font-bold text-accent uppercase tracking-widest text-[10px] bg-accent/10 px-2 py-1 border border-accent/20 rounded">
-                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(offer.offerAmount)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 flex-shrink-0 border-t md:border-t-0 pt-4 md:pt-0 border-card-border/50">
-                              <div>
-                                {offer.status === 'UNDER_REVIEW' && (
-                                  <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-md shadow-sm">
-                                    SYNC REVIEW
-                                  </span>
-                                )}
-                                {offer.status === 'ACCEPTED' && (
-                                  <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-md shadow-sm">
-                                    PROPOSAL ACCEPTED & RESERVED
-                                  </span>
-                                )}
-                                {offer.status === 'DECLINED' && (
-                                  <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-red-500/10 text-red-500 border border-red-500/20 rounded-md shadow-sm">
-                                    PROPOSAL DECLINED
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Link
-                                  href={`/details?id=${offer.vehicleId}`}
-                                  className="h-8 w-8 flex items-center justify-center bg-card hover:bg-foreground/5 border border-card-border rounded transition-colors text-text-muted hover:text-foreground"
-                                  title="View Vehicle"
-                                >
-                                  <ArrowRight size={16} />
-                                </Link>
-                                <button
-                                  onClick={(e) => handleDeleteOffer(offer.id, e)}
-                                  className="h-8 w-8 flex items-center justify-center bg-card hover:bg-red-500/10 border border-card-border hover:border-red-500/30 rounded transition-colors text-text-muted hover:text-red-500"
-                                  title="Withdraw Proposal"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-16 bg-card border border-card-border rounded-xl">
-                    <Calendar size={40} className="mx-auto text-text-muted mb-4 opacity-40" />
-                    <h3 className="font-bold uppercase tracking-wider text-foreground text-sm">No Proposals Submitted</h3>
-                    <p className="text-xs text-text-muted max-w-xs mx-auto mt-1 leading-relaxed">
-                      Make an acquisition proposal directly from any active luxury vehicle listing.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
 
           </div>
         )}

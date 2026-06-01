@@ -17,11 +17,10 @@ router.get('/fix-db', async (req: Request, res: Response) => {
     `);
     // 3. Output Bookings explicitly for debugging
     const bookings = await prisma.booking.findMany({});
-    const offers = await prisma.offer.findMany({});
     
     return res.json({
       success: true,
-      message: `Database fixed successfully! Found ${bookings.length} bookings and ${offers.length} offers.`,
+      message: `Database fixed successfully! Found ${bookings.length} bookings.`,
       debug_bookings: bookings
     });
   } catch (error: any) {
@@ -86,14 +85,14 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
-// GET /api/settings/customers — Loads registered customer profiles with their bookings/offers counts
+// GET /api/settings/customers — Loads registered customer profiles with their bookings counts
 router.get('/customers', authenticateJWT, requireAdmin, async (_req: Request, res: Response) => {
   try {
     const customers = await prisma.user.findMany({
       where: { role: 'CUSTOMER' },
       include: {
         _count: {
-          select: { bookings: true, offers: true },
+          select: { bookings: true },
         },
       },
     });

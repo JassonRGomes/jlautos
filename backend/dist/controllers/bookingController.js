@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateBookingStatus = exports.deleteBooking = exports.updateBooking = exports.createBooking = exports.getBookingById = exports.getBookings = void 0;
+exports.updateBookingStatus = exports.deleteBooking = exports.updateBooking = exports.createBooking = exports.getBookedSlots = exports.getBookingById = exports.getMyBookings = exports.getBookings = void 0;
 const db_1 = __importDefault(require("../config/db"));
 const smsService_1 = require("../services/smsService");
 // GET /bookings - List bookings (admin: all, user: own)
@@ -44,6 +44,24 @@ const getBookings = async (req, res) => {
     }
 };
 exports.getBookings = getBookings;
+// GET /api/bookings/my - Loads proposals submitted by the logged-in customer (or all if ADMIN)
+const getMyBookings = async (req, res) => {
+    try {
+        // Jasson requested that ALL logged in users can see ALL bookings (Global Pipeline for agents)
+        const bookings = await db_1.default.booking.findMany({
+            orderBy: { createdAt: 'desc' },
+            include: {
+                user: { select: { name: true, email: true, phone: true } },
+                vehicle: true,
+            },
+        });
+        return res.json({ success: true, data: bookings });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch your bookings.', error: error.message });
+    }
+};
+exports.getMyBookings = getMyBookings;
 // GET /bookings/:id - Single booking detail
 const getBookingById = async (req, res) => {
     const { id } = req.params;
@@ -68,6 +86,26 @@ const getBookingById = async (req, res) => {
     }
 };
 exports.getBookingById = getBookingById;
+// GET /api/bookings/booked-slots/:vehicleId/:date
+const getBookedSlots = async (req, res) => {
+    const { vehicleId, date } = req.params;
+    try {
+        const bookings = await db_1.default.booking.findMany({
+            where: {
+                vehicleId,
+                bookingDate: new Date(date),
+                status: { in: ['pending', 'confirmed'] },
+            },
+            select: { bookingTime: true },
+        });
+        const bookedSlots = bookings.map((b) => b.bookingTime);
+        return res.json({ success: true, data: bookedSlots });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch booked slots.', error: error.message });
+    }
+};
+exports.getBookedSlots = getBookedSlots;
 // POST /bookings - Create new booking
 const createBooking = async (req, res) => {
     const user = req.user;
@@ -189,6 +227,9 @@ const deleteBooking = async (req, res) => {
         const booking = await db_1.default.booking.findUnique({ where: { id } });
         if (!booking)
             return res.status(404).json({ success: false, message: 'Booking not found.' });
+        if (user.role === 'CUSTOMER' && booking.userId !== user.id) {
+            return res.status(403).json({ success: false, message: 'Access denied.' });
+        }
         await db_1.default.booking.delete({ where: { id } });
         await db_1.default.activityLog.create({
             data: { action: 'DELETE_BOOKING', entityType: 'Booking', entityId: id, performedBy: user.id },
