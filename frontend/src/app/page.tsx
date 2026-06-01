@@ -466,10 +466,55 @@ export default function Home() {
                   className="bg-card border border-card-border text-foreground px-3.5 py-2.5 rounded-md text-sm font-medium focus:ring-1 focus:ring-accent focus:border-accent outline-none"
                 >
                   <option value="">All Brands</option>
-                  <option value="Porsche">Porsche</option>
+                  <option value="Acura">Acura</option>
+                  <option value="Alfa Romeo">Alfa Romeo</option>
                   <option value="Aston Martin">Aston Martin</option>
                   <option value="Audi">Audi</option>
+                  <option value="Bentley">Bentley</option>
+                  <option value="BMW">BMW</option>
+                  <option value="Bugatti">Bugatti</option>
+                  <option value="Buick">Buick</option>
+                  <option value="Cadillac">Cadillac</option>
+                  <option value="Chevrolet">Chevrolet</option>
+                  <option value="Chrysler">Chrysler</option>
+                  <option value="Dodge">Dodge</option>
+                  <option value="Ferrari">Ferrari</option>
+                  <option value="Fiat">Fiat</option>
+                  <option value="Ford">Ford</option>
+                  <option value="Genesis">Genesis</option>
+                  <option value="GMC">GMC</option>
+                  <option value="Honda">Honda</option>
+                  <option value="Hyundai">Hyundai</option>
+                  <option value="Ineos">Ineos</option>
+                  <option value="Infiniti">Infiniti</option>
+                  <option value="Jaguar">Jaguar</option>
+                  <option value="Jeep">Jeep</option>
+                  <option value="Kia">Kia</option>
+                  <option value="Koenigsegg">Koenigsegg</option>
+                  <option value="Lamborghini">Lamborghini</option>
+                  <option value="Land Rover / Range Rover">Land Rover / Range Rover</option>
+                  <option value="Lexus">Lexus</option>
+                  <option value="Lincoln">Lincoln</option>
+                  <option value="Lotus">Lotus</option>
+                  <option value="Lucid Motors">Lucid Motors</option>
+                  <option value="Maserati">Maserati</option>
+                  <option value="Mazda">Mazda</option>
+                  <option value="McLaren">McLaren</option>
                   <option value="Mercedes-Benz">Mercedes-Benz</option>
+                  <option value="MINI">MINI</option>
+                  <option value="Mitsubishi">Mitsubishi</option>
+                  <option value="Nissan">Nissan</option>
+                  <option value="Pagani">Pagani</option>
+                  <option value="Polestar">Polestar</option>
+                  <option value="Porsche">Porsche</option>
+                  <option value="Ram">Ram</option>
+                  <option value="Rivian">Rivian</option>
+                  <option value="Rolls-Royce">Rolls-Royce</option>
+                  <option value="Subaru">Subaru</option>
+                  <option value="Tesla">Tesla</option>
+                  <option value="Toyota">Toyota</option>
+                  <option value="Volkswagen">Volkswagen</option>
+                  <option value="Volvo">Volvo</option>
                 </select>
               </div>
 
