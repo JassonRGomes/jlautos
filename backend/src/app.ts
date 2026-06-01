@@ -136,20 +136,18 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 const PORT = Number(process.env.PORT) || 5001;
 
 // Only listen if run directly (not when imported by tests or server.js)
-if (require.main === module) {
-  app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`[JL Autos ERP] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-    // Test database connection on startup
-    try {
-      const { default: prisma } = await import('./config/db');
-      await prisma.$queryRaw`SELECT 1`;
-      console.log('[DB] ✅ Database connection established successfully.');
-    } catch (err: any) {
-      console.error('[DB] ❌ Database connection FAILED:', err.message);
-      console.error('[DB] Check your DATABASE_URL in backend/.env');
-    }
-  });
-}
+app.listen(PORT, '0.0.0.0', async () => {
+  console.log(`[JL Autos ERP] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  // Test database connection on startup
+  try {
+    const { default: prisma } = await import('./config/db');
+    await prisma.$queryRaw`SELECT 1`;
+    console.log('[DB] ✅ Database connection established successfully.');
+  } catch (err: any) {
+    console.error('[DB] ❌ Database connection FAILED:', err.message);
+    console.error('[DB] Check your DATABASE_URL in backend/.env');
+  }
+});
 
 export default app;
 

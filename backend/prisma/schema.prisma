@@ -22,15 +22,17 @@ model User {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  sales              Sale[]
-  stockMovements     StockMovement[]
-  sessions           Session[]
-  bookings           Booking[]
-  favorites          Favorite[]
-  savedSearches      SavedSearch[]
-  customerTestDrives TestDrive[]   @relation("CustomerTestDrives")
-  salesTestDrives    TestDrive[]   @relation("SalesRepTestDrives")
-  activityLogs       ActivityLog[] @relation("UserActivityLogs")
+  sales                   Sale[]
+  stockMovements          StockMovement[]
+  sessions                Session[]
+  bookings                Booking[]
+  favorites               Favorite[]
+  savedSearches           SavedSearch[]
+  customerTestDrives      TestDrive[]        @relation("CustomerTestDrives")
+  salesTestDrives         TestDrive[]        @relation("SalesRepTestDrives")
+  activityLogs            ActivityLog[]      @relation("UserActivityLogs")
+  testDriveBookings       TestDriveBooking[] @relation("CustomerTestDriveBookings")
+  dealerTestDriveBookings TestDriveBooking[] @relation("DealerTestDriveBookings")
 }
 
 model Session {
@@ -62,36 +64,37 @@ model Customer {
 }
 
 model Vehicle {
-  id                     String   @id @default(uuid())
-  make                   String
-  model                  String
-  year                   Int
-  color                  String   @default("Black")
-  mileage                Int      @default(0)
-  price                  Decimal  @db.Decimal(12, 2)
-  vin                    String?  @unique
-  status                 String   @default("ON_SALE") // ON_SALE, SOLD, RESERVED, MAINTENANCE
-  images                 String   @db.Text // JSON array of URLs
-  description            String?  @db.Text
-  transmission           String?
-  engine                 String?
-  fuelType               String?
-  bodyStyle              String?
-  seats                  Int?
-  doors                  Int?
-  isFinanceWarrantyActive Boolean @default(false)
-  financeData            String?  @db.Text // JSON
-  warrantyData           String?  @db.Text // JSON
-  features               String?  @db.Text // JSON array
-  dealershipId           String?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                      String   @id @default(uuid())
+  make                    String
+  model                   String
+  year                    Int
+  color                   String   @default("Black")
+  mileage                 Int      @default(0)
+  price                   Decimal  @db.Decimal(12, 2)
+  vin                     String?  @unique
+  status                  String   @default("ON_SALE") // ON_SALE, SOLD, RESERVED, MAINTENANCE
+  images                  String   @db.Text // JSON array of URLs
+  description             String?  @db.Text
+  transmission            String?
+  engine                  String?
+  fuelType                String?
+  bodyStyle               String?
+  seats                   Int?
+  doors                   Int?
+  isFinanceWarrantyActive Boolean  @default(false)
+  financeData             String?  @db.Text // JSON
+  warrantyData            String?  @db.Text // JSON
+  features                String?  @db.Text // JSON array
+  dealershipId            String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
-  dealership Dealership? @relation(fields: [dealershipId], references: [id])
-  saleItems  SaleItem[]
-  bookings   Booking[]
-  testDrives TestDrive[]
-  favorites  Favorite[]
+  dealership       Dealership?        @relation(fields: [dealershipId], references: [id])
+  saleItems        SaleItem[]
+  bookings         Booking[]
+  testDrives       TestDrive[]
+  favorites        Favorite[]
+  TestDriveBooking TestDriveBooking[]
 
   @@index([make])
   @@index([status])
@@ -166,7 +169,7 @@ model StockMovement {
   id        String   @id @default(uuid())
   productId String
   userId    String
-  type      String   // IN, OUT, ADJUSTMENT
+  type      String // IN, OUT, ADJUSTMENT
   quantity  Int
   notes     String?
   createdAt DateTime @default(now())
@@ -209,7 +212,7 @@ model SaleItem {
 model FinancialTransaction {
   id          String    @id @default(uuid())
   saleId      String?
-  type        String    // INCOME, EXPENSE
+  type        String // INCOME, EXPENSE
   amount      Decimal   @db.Decimal(12, 2)
   status      String    @default("PENDING") // PENDING, PAID, CANCELED
   dueDate     DateTime?
@@ -289,9 +292,9 @@ model Dealership {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  vehicles         Vehicle[]
-  bookings         Booking[]
-  testDrives       TestDrive[]
+  vehicles          Vehicle[]
+  bookings          Booking[]
+  testDrives        TestDrive[]
   availabilitySlots AvailabilitySlot[]
 }
 
@@ -299,14 +302,36 @@ model AvailabilitySlot {
   id           String   @id @default(uuid())
   dealershipId String
   date         DateTime
-  startTime    String   // e.g., "09:00"
-  endTime      String   // e.g., "10:00"
+  startTime    String // e.g., "09:00"
+  endTime      String // e.g., "10:00"
   isBooked     Boolean  @default(false)
   type         String   @default("TEST_DRIVE") // TEST_DRIVE, SERVICE, CONSULTATION
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  dealership Dealership @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+  dealership Dealership  @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
   bookings   Booking[]
   testDrives TestDrive[]
+}
+
+model TestDriveBooking {
+  id                 String    @id @default(uuid())
+  bookingReference   String    @unique
+  customerId         String
+  dealerId           String?
+  vehicleId          String
+  bookingDate        DateTime
+  bookingTime        String
+  customerNotes      String?   @db.Text
+  dealerNotes        String?   @db.Text
+  status             String    @default("Pending Approval")
+  rejectionReason    String?   @db.Text
+  cancellationReason String?   @db.Text
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  customer User    @relation("CustomerTestDriveBookings", fields: [customerId], references: [id])
+  dealer   User?   @relation("DealerTestDriveBookings", fields: [dealerId], references: [id])
+  vehicle  Vehicle @relation(fields: [vehicleId], references: [id])
 }

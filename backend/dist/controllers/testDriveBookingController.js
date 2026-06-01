@@ -809,6 +809,13 @@ const deleteBookingDealer = async (req, res) => {
         if (!booking) {
             return res.status(404).json({ success: false, message: 'Booking not found.' });
         }
+        // Rule 3: Admin can only delete resolved bookings
+        if (!['Completed', 'Cancelled', 'Rejected'].includes(booking.status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Only resolved bookings (Completed, Cancelled, or Rejected) can be deleted. This booking is currently "${booking.status}".`,
+            });
+        }
         const updated = await db_1.default.testDriveBooking.update({
             where: { id },
             data: { deletedAt: new Date() },

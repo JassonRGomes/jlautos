@@ -9,9 +9,12 @@ const smsService_1 = require("../services/smsService");
 // GET /bookings - List bookings (admin: all, user: own)
 const getBookings = async (req, res) => {
     const user = req.user;
+    if (!user.id) {
+        return res.status(401).json({ success: false, message: 'User ID missing in token.' });
+    }
     const { status, vehicleId, page = '1', limit = '20' } = req.query;
     const where = {};
-    if (user.role === 'CUSTOMER')
+    if ((user.role || '').toUpperCase() === 'CUSTOMER')
         where.userId = user.id;
     if (status)
         where.status = status;
@@ -46,9 +49,17 @@ const getBookings = async (req, res) => {
 exports.getBookings = getBookings;
 // GET /api/bookings/my - Loads proposals submitted by the logged-in customer (or all if ADMIN)
 const getMyBookings = async (req, res) => {
+    const user = req.user;
+    if (!user.id) {
+        return res.status(401).json({ success: false, message: 'User ID missing in token.' });
+    }
     try {
-        // Jasson requested that ALL logged in users can see ALL bookings (Global Pipeline for agents)
+        const where = {};
+        if ((user.role || '').toUpperCase() !== 'ADMIN') {
+            where.userId = user.id;
+        }
         const bookings = await db_1.default.booking.findMany({
+            where,
             orderBy: { createdAt: 'desc' },
             include: {
                 user: { select: { name: true, email: true, phone: true } },
@@ -76,7 +87,7 @@ const getBookingById = async (req, res) => {
         });
         if (!booking)
             return res.status(404).json({ success: false, message: 'Booking not found.' });
-        if (user.role === 'CUSTOMER' && booking.userId !== user.id) {
+        if ((user.role || '').toUpperCase() === 'CUSTOMER' && booking.userId !== user.id) {
             return res.status(403).json({ success: false, message: 'Access denied.' });
         }
         return res.json({ success: true, data: booking });
@@ -171,7 +182,8 @@ const updateBooking = async (req, res) => {
         if (!booking)
             return res.status(404).json({ success: false, message: 'Booking not found.' });
         // Customers can only cancel their own bookings
-        if (user.role === 'CUSTOMER') {
+        const roleUpper = (user.role || '').toUpperCase();
+        if (roleUpper === 'CUSTOMER') {
             if (booking.userId !== user.id)
                 return res.status(403).json({ success: false, message: 'Access denied.' });
             if (status && status !== 'cancelled')
@@ -227,7 +239,7 @@ const deleteBooking = async (req, res) => {
         const booking = await db_1.default.booking.findUnique({ where: { id } });
         if (!booking)
             return res.status(404).json({ success: false, message: 'Booking not found.' });
-        if (user.role === 'CUSTOMER' && booking.userId !== user.id) {
+        if ((user.role || '').toUpperCase() === 'CUSTOMER' && booking.userId !== user.id) {
             return res.status(403).json({ success: false, message: 'Access denied.' });
         }
         await db_1.default.booking.delete({ where: { id } });

@@ -37,7 +37,7 @@ const authenticateJWT = async (req, res, next) => {
 exports.authenticateJWT = authenticateJWT;
 // Enforce Admin Role
 const requireAdmin = (req, res, next) => {
-    if (!req.user || req.user.role !== 'ADMIN') {
+    if (!req.user || (req.user.role || '').toUpperCase() !== 'ADMIN') {
         return res.status(403).json({ message: 'Access denied. Administrator privileges required.' });
     }
     next();
