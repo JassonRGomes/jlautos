@@ -199,10 +199,15 @@ function CustomerDashboardInner() {
     }
   };
 
+  // Redirect ADMIN away from customer dashboard
   useEffect(() => {
     if (!loadingAuth && !user) {
       router.push('/login');
     } else if (user) {
+      if (user.role === 'ADMIN') {
+        router.replace('/admin');
+        return;
+      }
       fetchDashboardData();
     }
   }, [user, loadingAuth, searchParams, pathname]);
@@ -251,18 +256,28 @@ function CustomerDashboardInner() {
   const handleDeleteBooking = async (bookingId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to cancel this test drive booking?')) return;
+    const booking = bookings.find((b) => b.id === bookingId);
+    if (!booking) {
+      alert('Booking not found.');
+      return;
+    }
+    // Only allow deletion of resolved bookings (Cancelled or Completed)
+    if (!['Cancelled', 'Completed'].includes(booking.status)) {
+      alert('Only resolved bookings (cancelled or completed) can be deleted.');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to permanently delete this resolved booking?')) return;
     try {
       const token = localStorage.getItem('jl_auth_token');
       await axios.delete(`${BACKEND_URL}/api/bookings/${bookingId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // Update list status locally
-      setBookings((prev) => prev.map((b) => b.id === bookingId ? { ...b, status: 'Cancelled' } : b));
-      alert('Booking cancelled successfully.');
+      // Remove from local list
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+      alert('Booking permanently deleted.');
     } catch (err: any) {
-      console.error('Failed to cancel booking:', err);
-      alert(err.response?.data?.message || 'Failed to cancel the booking. Please try again.');
+      console.error('Failed to delete booking:', err);
+      alert(err.response?.data?.message || 'Failed to delete the booking. Please try again.');
     }
   };
 
@@ -336,7 +351,17 @@ function CustomerDashboardInner() {
   const handleDeleteOffer = async (offerId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to cancel this proposal?')) return;
+    const offer = offers.find((o) => o.id === offerId);
+    if (!offer) {
+      alert('Offer not found.');
+      return;
+    }
+    // Only allow deletion of resolved (ACCEPTED or DECLINED) proposals
+    if (!['ACCEPTED', 'DECLINED'].includes(offer.status)) {
+      alert('Only resolved proposals (accepted or declined) can be deleted.');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to permanently delete this resolved proposal?')) return;
     try {
       const token = localStorage.getItem('jl_auth_token');
       await axios.delete(`${BACKEND_URL}/api/offers/${offerId}`, {
@@ -344,8 +369,8 @@ function CustomerDashboardInner() {
       });
       setOffers((prev) => prev.filter((o) => o.id !== offerId));
     } catch (err) {
-      console.error('Failed to cancel proposal:', err);
-      alert('Failed to cancel the proposal. Please try again.');
+      console.error('Failed to delete proposal:', err);
+      alert('Failed to delete the proposal. Please try again.');
     }
   };
 
@@ -817,13 +842,15 @@ function CustomerDashboardInner() {
                                 >
                                   <ArrowRight size={16} />
                                 </Link>
-                                <button
-                                  onClick={(e) => handleDeleteOffer(offer.id, e)}
-                                  className="h-8 w-8 flex items-center justify-center bg-card hover:bg-red-500/10 border border-card-border hover:border-red-500/30 rounded transition-colors text-text-muted hover:text-red-500"
-                                  title="Withdraw Proposal"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
+                                {((user?.role === 'ADMIN' && ['ACCEPTED', 'DECLINED'].includes(offer.status)) || (user?.role !== 'ADMIN' && offer.status === 'UNDER_REVIEW')) && (
+                                  <button
+                                    onClick={(e) => handleDeleteOffer(offer.id, e)}
+                                    className="h-8 w-8 flex items-center justify-center bg-card hover:bg-red-500/10 border border-card-border hover:border-red-500/30 rounded transition-colors text-text-muted hover:text-red-500"
+                                    title={user?.role === 'ADMIN' ? 'Permanently Delete Proposal' : 'Withdraw Proposal'}
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>

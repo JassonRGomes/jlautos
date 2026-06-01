@@ -565,7 +565,9 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
                       setOfferOpen(true);
                     }
                   }}
-                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white transition-all shadow-sm"
+                  disabled={user?.role === 'ADMIN'}
+                  title={user?.role === 'ADMIN' ? 'Administrators cannot make offers on their own vehicles' : ''}
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <DollarSign size={14} className="text-accent" />
                   <span>Make an Offer</span>
@@ -721,13 +723,24 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
             </div>
 
             <div className="space-y-4">
-              <Link
-                href={`/book-test-drive?vehicleId=${vehicle.id}`}
-                className="w-full bg-gradient-to-r from-accent to-accent-hover text-white py-3.5 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-2 text-center"
-              >
-                <Calendar size={15} />
-                <span>Book a Test Drive</span>
-              </Link>
+              {user?.role === 'ADMIN' ? (
+                <button
+                  disabled
+                  title="Administrators cannot book test drives"
+                  className="w-full bg-gradient-to-r from-accent to-accent-hover text-white py-3.5 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] opacity-50 cursor-not-allowed shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-2 text-center"
+                >
+                  <Calendar size={15} />
+                  <span>Book a Test Drive</span>
+                </button>
+              ) : (
+                <Link
+                  href={`/book-test-drive?vehicleId=${vehicle.id}`}
+                  className="w-full bg-gradient-to-r from-accent to-accent-hover text-white py-3.5 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-2 text-center"
+                >
+                  <Calendar size={15} />
+                  <span>Book a Test Drive</span>
+                </Link>
+              )}
             </div>
 
             <div className="pt-5 mt-2 border-t border-white/10 text-center">
