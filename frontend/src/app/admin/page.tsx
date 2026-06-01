@@ -257,14 +257,15 @@ export default function AdministrativePanel() {
     }
 
       // D. Sync Customers Directories
-      const custRes = await axios.get(`${BACKEND_URL}/api/settings/customers?_t=${ts}`);
-      if (custRes.data && custRes.data.registry) {
-        setCustomers(custRes.data.registry);
+      try {
+        const custRes = await axios.get(`${BACKEND_URL}/api/settings/customers?_t=${ts}`);
+        if (custRes.data && custRes.data.registry) {
+          setCustomers(custRes.data.registry);
+        }
+      } catch (err: any) {
+        console.error('[Sync] Customers fetch failed:', err);
+        syncErrors.push('Customers');
       }
-    } catch (err: any) {
-      console.error('[Sync] Customers fetch failed:', err);
-      syncErrors.push('Customers');
-    }
 
     setLoadingData(false);
 
