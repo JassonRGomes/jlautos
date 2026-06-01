@@ -6,10 +6,13 @@ import { sendBookingStatusSMSToCustomer } from '../services/smsService';
 // GET /bookings - List bookings (admin: all, user: own)
 export const getBookings = async (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
+  if (!user.id) {
+    return res.status(401).json({ success: false, message: 'User ID missing in token.' });
+  }
   const { status, vehicleId, page = '1', limit = '20' } = req.query;
 
   const where: any = {};
-  if (user.role === 'CUSTOMER') where.userId = user.id;
+  if ((user.role || '').toUpperCase() === 'CUSTOMER') where.userId = user.id;
   if (status) where.status = status;
   if (vehicleId) where.vehicleId = vehicleId;
 
@@ -43,9 +46,17 @@ export const getBookings = async (req: AuthenticatedRequest, res: Response) => {
 
 // GET /api/bookings/my - Loads proposals submitted by the logged-in customer (or all if ADMIN)
 export const getMyBookings = async (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
+  if (!user.id) {
+    return res.status(401).json({ success: false, message: 'User ID missing in token.' });
+  }
   try {
-    // Jasson requested that ALL logged in users can see ALL bookings (Global Pipeline for agents)
+    const where: any = {};
+    if ((user.role || '').toUpperCase() !== 'ADMIN') {
+      where.userId = user.id;
+    }
     const bookings = await prisma.booking.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { name: true, email: true, phone: true } },
@@ -73,7 +84,7 @@ export const getBookingById = async (req: AuthenticatedRequest, res: Response) =
     });
 
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
-    if (user.role === 'CUSTOMER' && booking.userId !== user.id) {
+    if ((user.role || '').toUpperCase() === 'CUSTOMER' && booking.userId !== user.id) {
       return res.status(403).json({ success: false, message: 'Access denied.' });
     }
 
@@ -173,7 +184,8 @@ export const updateBooking = async (req: AuthenticatedRequest, res: Response) =>
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
 
     // Customers can only cancel their own bookings
-    if (user.role === 'CUSTOMER') {
+    const roleUpper = (user.role || '').toUpperCase();
+    if (roleUpper === 'CUSTOMER') {
       if (booking.userId !== user.id) return res.status(403).json({ success: false, message: 'Access denied.' });
       if (status && status !== 'cancelled') return res.status(403).json({ success: false, message: 'Customers can only cancel bookings.' });
     }
@@ -226,7 +238,7 @@ export const deleteBooking = async (req: AuthenticatedRequest, res: Response) =>
     const booking = await prisma.booking.findUnique({ where: { id } });
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
 
-    if (user.role === 'CUSTOMER' && booking.userId !== user.id) {
+    if ((user.role || '').toUpperCase() === 'CUSTOMER' && booking.userId !== user.id) {
       return res.status(403).json({ success: false, message: 'Access denied.' });
     }
 

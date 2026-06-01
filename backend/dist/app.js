@@ -37,6 +37,7 @@ const path_1 = __importDefault(require("path"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const vehicleRoutes_1 = __importDefault(require("./routes/vehicleRoutes"));
 const bookingRoutes_1 = __importDefault(require("./routes/bookingRoutes"));
+const dealerBookingRoutes_1 = __importDefault(require("./routes/dealerBookingRoutes"));
 const testDriveRoutes_1 = __importDefault(require("./routes/testDriveRoutes"));
 const customerRoutes_1 = __importDefault(require("./routes/customerRoutes"));
 const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
@@ -100,6 +101,7 @@ app.get('/health', async (_req, res) => {
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/vehicles', vehicleRoutes_1.default);
 app.use('/api/bookings', bookingRoutes_1.default);
+app.use('/api/dealer/bookings', dealerBookingRoutes_1.default);
 app.use('/api/test-drives', testDriveRoutes_1.default);
 app.use('/api/customers', customerRoutes_1.default);
 app.use('/api/uploads', uploadRoutes_1.default);

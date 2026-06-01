@@ -22,7 +22,7 @@ const authenticateJWT = async (req, res, next) => {
         // Verify user exists in the database
         const user = await db_1.default.user.findUnique({
             where: { id: decoded.id },
-            select: { id: true, email: true, role: true, name: true }
+            select: { id: true, email: true, role: true, name: true, phone: true }
         });
         if (!user) {
             return res.status(401).json({ message: 'User session invalid. Please log in again.' });

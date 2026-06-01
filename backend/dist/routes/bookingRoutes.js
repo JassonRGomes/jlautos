@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const bookingController_1 = require("../controllers/bookingController");
+const testDriveBookingController_1 = require("../controllers/testDriveBookingController");
 const auth_1 = require("../middlewares/auth");
 const router = (0, express_1.Router)();
 // Public route to fetch unavailable slots

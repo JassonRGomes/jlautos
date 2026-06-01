@@ -25,7 +25,9 @@ import {
   Sliders,
   ChevronRight,
   ShieldAlert,
+  X,
 } from 'lucide-react';
+
 
 const BACKEND_URL =
   (process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -61,12 +63,16 @@ interface SavedSearch {
 
 interface Booking {
   id: string;
+  bookingReference: string;
   vehicleId: string;
   vehicle: Vehicle;
   bookingDate: string;
   bookingTime: string;
-  notes?: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  customerNotes?: string;
+  dealerNotes?: string;
+  cancellationReason?: string;
+  rejectionReason?: string;
+  status: string;
   createdAt: string;
 }
 
@@ -94,9 +100,22 @@ function CustomerDashboardInner() {
   const [bookings, setBookings] = useState<Booking[]>([]);
 
 
+  // View / Edit Modal states
+  const [selectedBookingForView, setSelectedBookingForView] = useState<Booking | null>(null);
+  const [selectedBookingForEdit, setSelectedBookingForEdit] = useState<Booking | null>(null);
+  
+  // Edit Form states
+  const [editDate, setEditDate] = useState('');
+  const [editTimeSlot, setEditTimeSlot] = useState('');
+  const [editLicense, setEditLicense] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+
   // Page loading & errors
   const [loadingData, setLoadingData] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
 
   // 1. Fetch all dashboard pipelines
   const fetchDashboardData = async (silent = false) => {
@@ -105,41 +124,44 @@ function CustomerDashboardInner() {
       if (!silent) setLoadingData(true);
       setErrorMsg('');
 
+      const token = localStorage.getItem('jl_auth_token');
       const ts = Date.now();
       // A. Fetch Favorites
-      const favRes = await axios.get(`${BACKEND_URL}/api/vehicles/favorites?_t=${ts}`);
+      const favRes = await axios.get(`${BACKEND_URL}/api/vehicles/favorites?_t=${ts}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (favRes.data && favRes.data.vehicles) {
         setFavorites(favRes.data.vehicles);
       }
 
       // B. Fetch Saved Searches
-      const searchRes = await axios.get(`${BACKEND_URL}/api/vehicles/saved-searches?_t=${ts}`);
+      const searchRes = await axios.get(`${BACKEND_URL}/api/vehicles/saved-searches?_t=${ts}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (searchRes.data && searchRes.data.saved) {
         setSavedSearches(searchRes.data.saved);
       }
 
       // C. Fetch Bookings
-      const bookingRes = await axios.get(`${BACKEND_URL}/api/bookings/my?_t=${ts}`);
+      const roleUpper = (user.role || '').toUpperCase();
+      const bookingUrl = roleUpper === 'ADMIN' ? `${BACKEND_URL}/api/bookings?_t=${ts}` : `${BACKEND_URL}/api/bookings/my?_t=${ts}`;
+      const bookingRes = await axios.get(bookingUrl, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (bookingRes.data && bookingRes.data.data) {
-        const parsed = bookingRes.data.data.map((b: any) => {
+        let parsed = bookingRes.data.data.map((b: any) => {
           let imgs = [];
           if (b.vehicle && typeof b.vehicle.images === 'string') {
             try { imgs = JSON.parse(b.vehicle.images); } catch (e) { imgs = [b.vehicle.images]; }
-          } else if (b.vehicle && b.vehicle.images) { 
-            imgs = b.vehicle.images; 
+          } else if (b.vehicle && b.vehicle.images) {
+            imgs = b.vehicle.images;
           }
-          
-          let eventType = 'VISIT';
-          if (b.notes && b.notes.includes('TEST_DRIVE')) {
-            eventType = 'TEST_DRIVE';
-          }
-          
-          return { 
-            ...b, 
-            status: b.status ? b.status.toLowerCase() : 'pending',
-            vehicle: { ...b.vehicle, images: imgs } 
-          };
+          return { ...b, vehicle: { ...b.vehicle, images: imgs } };
         });
+        // For customers, ensure only own bookings are displayed
+        if ((user?.role || '').toUpperCase() !== 'ADMIN') {
+          parsed = parsed.filter((b) => b.user && b.user.id === user.id);
+        }
         setBookings(parsed);
       }
 
@@ -153,10 +175,18 @@ function CustomerDashboardInner() {
     }
   };
 
+  // Redirect ADMIN away from customer dashboard
   useEffect(() => {
     if (!loadingAuth && !user) {
       router.push('/login');
     } else if (user) {
+      const roleUpper = (user.role || '').toUpperCase();
+        if (roleUpper === 'ADMIN') {
+          router.replace('/admin');
+          return;
+        router.replace('/admin');
+        return;
+      }
       fetchDashboardData();
     }
   }, [user, loadingAuth, searchParams, pathname]);
@@ -166,7 +196,10 @@ function CustomerDashboardInner() {
     e.preventDefault();
     e.stopPropagation();
     try {
-      await axios.delete(`${BACKEND_URL}/api/vehicles/saved-searches/${id}`);
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.delete(`${BACKEND_URL}/api/vehicles/saved-searches/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setSavedSearches((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
       console.error('Failed to clear filter search:', err);
@@ -189,7 +222,10 @@ function CustomerDashboardInner() {
     e.preventDefault();
     e.stopPropagation();
     try {
-      await axios.post(`${BACKEND_URL}/api/vehicles/${vehicleId}/favorite`);
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.post(`${BACKEND_URL}/api/vehicles/${vehicleId}/favorite`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setFavorites((prev) => prev.filter((v) => v.id !== vehicleId));
     } catch (err) {
       console.error('Failed to untag favorite:', err);
@@ -199,13 +235,28 @@ function CustomerDashboardInner() {
   const handleDeleteBooking = async (bookingId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    const booking = bookings.find((b) => b.id === bookingId);
+    if (!booking) {
+      alert('Booking not found.');
+      return;
+    }
+    // Only allow deletion of resolved bookings (Cancelled or Completed)
+    if (!['Cancelled', 'Completed'].includes(booking.status)) {
+      alert('Only resolved bookings (cancelled or completed) can be deleted.');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to permanently delete this resolved booking?')) return;
     try {
-      await axios.delete(`${BACKEND_URL}/api/bookings/${bookingId}`);
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.delete(`${BACKEND_URL}/api/bookings/${bookingId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Remove from local list
       setBookings((prev) => prev.filter((b) => b.id !== bookingId));
-    } catch (err) {
-      console.error('Failed to cancel booking:', err);
-      alert('Failed to cancel the booking. Please try again.');
+      alert('Booking permanently deleted.');
+    } catch (err: any) {
+      console.error('Failed to delete booking:', err);
+      alert(err.response?.data?.message || 'Failed to delete the booking. Please try again.');
     }
   };
 
@@ -487,102 +538,99 @@ function CustomerDashboardInner() {
             {/* TAB C: BOOKINGS TIMELINE (Redesigned for Auto-Sync) */}
             {activeTab === 'bookings' && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {user?.role === 'ADMIN' && bookings.length > 0 && (
-                  <div className="mb-4 inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                    <CheckCircle2 size={12} /> Global Database Sync Active
-                  </div>
-                )}
-                
                 {bookings.length > 0 ? (
-                  <div className="relative border-l-2 border-card-border/60 ml-4 space-y-6 py-2">
-                    {bookings.map((booking) => {
-                      const img = booking.vehicle?.images?.[0] ? getImageUrl(booking.vehicle.images[0], 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200') : 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&q=80&w=200';
-                      return (
-                        <div key={booking.id} className="relative pl-8 group">
+                  <div className="overflow-x-auto rounded-xl border border-card-border bg-card">
+                    <table className="min-w-full divide-y divide-card-border text-left text-xs text-foreground">
+                      <thead className="bg-black/20 text-[10px] font-extrabold uppercase tracking-wider text-text-muted">
+                        <tr>
+                          <th className="py-3.5 px-5">Booking ID</th>
+                          <th className="py-3.5 px-5">Vehicle</th>
+                          <th className="py-3.5 px-5">Date</th>
+                          <th className="py-3.5 px-5">Time</th>
+                          <th className="py-3.5 px-5">Status</th>
+                          <th className="py-3.5 px-5">Created Date</th>
+                          <th className="py-3.5 px-5 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-card-border/60">
+                        {bookings.map((booking) => {
+                          const canEdit = ['Pending Approval', 'Approved'].includes(booking.status);
+                          const canCancel = booking.status !== 'Cancelled' && booking.status !== 'Rejected' && booking.status !== 'Completed';
                           
-                          {/* Sync Dot indicator */}
-                          <div className={`absolute -left-[9px] top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-4 bg-background transition-colors shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
-                            booking.status === 'confirmed' ? 'border-emerald-500' :
-                            booking.status === 'cancelled' ? 'border-red-500' :
-                            'border-blue-500'
-                          }`} />
+                          return (
+                            <tr key={booking.id} className="hover:bg-white/5 transition-colors">
+                              {/* Booking ID */}
+                              <td className="py-4 px-5 font-mono font-bold text-accent">
+                                #{booking.bookingReference}
+                              </td>
+                              {/* Vehicle */}
+                              <td className="py-4 px-5 font-semibold">
+                                {booking.vehicle ? `${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}` : <span className="text-red-500">Deleted Vehicle</span>}
+                              </td>
+                              {/* Date */}
+                              <td className="py-4 px-5">
+                                {new Date(booking.bookingDate).toLocaleDateString('en-US', {
+                                  month: 'short', day: 'numeric', year: 'numeric'
+                                })}
+                              </td>
+                              {/* Time */}
+                              <td className="py-4 px-5">{booking.bookingTime}</td>
+                              {/* Status */}
+                              <td className="py-4 px-5">
+                                <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded border ${
+                                  booking.status === 'Approved' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
+                                  booking.status === 'Pending Approval' ? 'bg-blue-500/10 border-blue-500/20 text-blue-500' :
+                                  booking.status === 'Modified by Dealer' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
+                                  booking.status === 'Cancelled' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
+                                  booking.status === 'Rejected' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
+                                  'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'
+                                }`}>
+                                  {booking.status}
+                                </span>
+                              </td>
+                              {/* Created Date */}
+                              <td className="py-4 px-5 text-text-muted">
+                                {new Date(booking.createdAt).toLocaleDateString('en-US')}
+                              </td>
+                              {/* Actions */}
+                              <td className="py-4 px-5 text-right space-x-2 whitespace-nowrap">
+                                <button
+                                  onClick={() => setSelectedBookingForView(booking)}
+                                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-colors cursor-pointer"
+                                >
+                                  View
+                                </button>
+                                
+                                {canEdit && (
+                                  <button
+                                    onClick={(e) => startEditBooking(booking, e)}
+                                    className="bg-accent hover:bg-accent-hover text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-colors cursor-pointer"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
 
-                          <div className="bg-card hover:bg-card-hover border border-card-border p-5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all duration-300 shadow-sm hover:shadow-md">
-                            <div className="flex items-center gap-5">
-                              <div className="relative w-20 h-14 flex-shrink-0 rounded-md overflow-hidden bg-zinc-950 border border-card-border shadow-inner">
-                                <Image
-                                  src={img}
-                                  alt={booking.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : 'Vehicle Deleted'}
-                                  fill
-                                  sizes="80px"
-                                  className="object-cover group-hover:scale-110 transition-transform duration-500"
-                                />
-                              </div>
-                              <div>
-                                <h4 className="font-black text-base uppercase text-foreground tracking-tight">
-                                  {booking.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : <span className="text-red-500">Vehicle Deleted</span>}
-                                </h4>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-text-muted mt-1.5 font-medium">
-                                  <span className="flex items-center gap-1.5 bg-background px-2 py-1 rounded border border-card-border">
-                                    <Calendar size={12} className="text-accent" />
-                                    {new Date(booking.bookingDate).toLocaleDateString('en-US', {
-                                      weekday: 'short', month: 'short', day: 'numeric',
-                                    })}
-                                  </span>
-                                  <span className="flex items-center gap-1.5 bg-background px-2 py-1 rounded border border-card-border">
-                                    <Clock size={12} className="text-zinc-400" />
-                                    {booking.bookingTime}
-                                  </span>
-                                  <span className="font-bold text-accent uppercase tracking-widest text-[9px] bg-accent/10 px-2 py-1 border border-accent/20 rounded">
-                                    {booking.notes?.includes('TEST_DRIVE') ? 'VIP Test Drive' : 'Private View'}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 flex-shrink-0 border-t md:border-t-0 pt-4 md:pt-0 border-card-border/50">
-                              <div>
-                                {booking.status === 'pending' && (
-                                  <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-md shadow-sm">
-                                    PENDING SYNC
-                                  </span>
+                                {canCancel && (
+                                  <button
+                                    onClick={(e) => handleDeleteBooking(booking.id, e)}
+                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-colors cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
                                 )}
-                                {booking.status === 'confirmed' && (
-                                  <span className="px-4 py-1.5 text-[10px] font-black tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-md shadow-sm">
-                                    CONFIRMED VIP
-                                  </span>
-                                )}
-                                {booking.status === 'cancelled' && (
-                                  <span className="px-3.5 py-1 text-[9px] font-bold tracking-widest bg-red-500/10 text-red-500 border border-red-500/20 rounded">
-                                    CANCELLED
-                                  </span>
-                                )}
-                              </div>
-                              <Link
-                                href={`/details?id=${booking.vehicleId}`}
-                                className="text-xs text-accent hover:text-accent-hover font-bold uppercase tracking-wider flex items-center gap-1"
-                              >
-                                View Car <ChevronRight size={14} />
-                              </Link>
-                              <button
-                                onClick={(e) => handleDeleteBooking(booking.id, e)}
-                                className="p-2 border border-card-border hover:border-red-500 hover:bg-red-500/10 text-text-muted hover:text-red-500 rounded transition-colors ml-2"
-                                title="Cancel Booking"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 ) : (
                   <div className="text-center py-16 bg-card border border-card-border rounded-xl">
                     <Calendar size={40} className="mx-auto text-text-muted mb-4 opacity-40" />
                     <h3 className="font-bold uppercase tracking-wider text-foreground text-sm">No Appointments</h3>
                     <p className="text-xs text-text-muted max-w-xs mx-auto mt-1 leading-relaxed">
-                      Schedule a Private Showing or VIP Test Drive directly from any luxury listing card details screen.
+                      Schedule a private showroom viewing or VIP test drive session directly on our active dealership floor.
                     </p>
                   </div>
                 )}
@@ -595,7 +643,182 @@ function CustomerDashboardInner() {
         )}
 
       </div>
+
+      {/* View Booking Detail Modal */}
+      {selectedBookingForView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-card border border-card-border p-6 rounded-2xl shadow-2xl relative space-y-6">
+            <button
+              onClick={() => setSelectedBookingForView(null)}
+              className="absolute top-4 right-4 text-text-muted hover:text-foreground cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <div className="border-b border-card-border pb-3">
+              <span className="text-[9px] font-extrabold text-accent uppercase tracking-widest">TEST DRIVE LEDGER</span>
+              <h3 className="text-xl font-bold uppercase text-foreground mt-0.5">Booking Details</h3>
+            </div>
+            
+            <div className="space-y-3.5 text-xs">
+              <div className="flex justify-between border-b border-card-border/50 pb-2">
+                <span className="text-text-muted uppercase font-bold text-[10px]">Reference ID</span>
+                <span className="font-mono font-bold text-foreground">#{selectedBookingForView.bookingReference}</span>
+              </div>
+              <div className="flex justify-between border-b border-card-border/50 pb-2">
+                <span className="text-text-muted uppercase font-bold text-[10px]">Status</span>
+                <span className="font-bold text-accent uppercase">{selectedBookingForView.status}</span>
+              </div>
+              <div className="flex justify-between border-b border-card-border/50 pb-2">
+                <span className="text-text-muted uppercase font-bold text-[10px]">Vehicle</span>
+                <span className="text-foreground font-semibold">{selectedBookingForView.vehicle ? `${selectedBookingForView.vehicle.year} ${selectedBookingForView.vehicle.make} ${selectedBookingForView.vehicle.model}` : 'Deleted Vehicle'}</span>
+              </div>
+              <div className="flex justify-between border-b border-card-border/50 pb-2">
+                <span className="text-text-muted uppercase font-bold text-[10px]">Preferred Date</span>
+                <span className="text-foreground">
+                  {new Date(selectedBookingForView.bookingDate).toLocaleDateString('en-US', {
+                    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-card-border/50 pb-2">
+                <span className="text-text-muted uppercase font-bold text-[10px]">Preferred Time</span>
+                <span className="text-foreground">{selectedBookingForView.bookingTime}</span>
+              </div>
+              {selectedBookingForView.customerNotes && (
+                <div className="flex flex-col space-y-1 border-b border-card-border/50 pb-2">
+                  <span className="text-text-muted uppercase font-bold text-[10px]">Your Comments / License</span>
+                  <p className="text-foreground bg-black/30 p-2.5 rounded leading-relaxed">{selectedBookingForView.customerNotes}</p>
+                </div>
+              )}
+              {selectedBookingForView.dealerNotes && (
+                <div className="flex flex-col space-y-1 border-b border-card-border/50 pb-2">
+                  <span className="text-text-muted uppercase font-bold text-[10px]">Dealer Instructions</span>
+                  <p className="text-emerald-400 bg-emerald-950/20 border border-emerald-500/20 p-2.5 rounded leading-relaxed">{selectedBookingForView.dealerNotes}</p>
+                </div>
+              )}
+              {selectedBookingForView.rejectionReason && (
+                <div className="flex flex-col space-y-1 border-b border-card-border/50 pb-2">
+                  <span className="text-red-400 uppercase font-bold text-[10px]">Rejection Reason</span>
+                  <p className="text-red-400 bg-red-950/20 border border-red-500/20 p-2.5 rounded leading-relaxed">{selectedBookingForView.rejectionReason}</p>
+                </div>
+              )}
+              {selectedBookingForView.cancellationReason && (
+                <div className="flex flex-col space-y-1 border-b border-card-border/50 pb-2">
+                  <span className="text-red-400 uppercase font-bold text-[10px]">Cancellation Reason</span>
+                  <p className="text-red-400 bg-red-950/20 border border-red-500/20 p-2.5 rounded leading-relaxed">{selectedBookingForView.cancellationReason}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setSelectedBookingForView(null)}
+                className="bg-accent hover:bg-accent-hover text-white px-5 py-2.5 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Booking Reschedule Modal */}
+      {selectedBookingForEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-card border border-card-border p-6 rounded-2xl shadow-2xl relative space-y-5">
+            <button
+              onClick={() => setSelectedBookingForEdit(null)}
+              className="absolute top-4 right-4 text-text-muted hover:text-foreground cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <div className="border-b border-card-border pb-3">
+              <span className="text-[9px] font-extrabold text-accent uppercase tracking-widest">EDIT APPOINTMENT</span>
+              <h3 className="text-xl font-bold uppercase text-foreground mt-0.5">Reschedule Test Drive</h3>
+            </div>
+            
+            <form onSubmit={handleSaveEditBooking} className="space-y-4 text-xs">
+              <div className="flex flex-col space-y-1.5">
+                <span className="text-[10px] font-bold text-text-muted uppercase">Preferred Date</span>
+                <input
+                  type="date"
+                  required
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 text-foreground px-3.5 py-2.5 rounded-lg outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <span className="text-[10px] font-bold text-text-muted uppercase">Select Operational Slot</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {['09:00 AM', '10:30 AM', '01:00 PM', '03:00 PM', '04:30 PM'].map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setEditTimeSlot(slot)}
+                      className={`py-2 px-1 text-[10px] font-bold rounded border transition-all cursor-pointer ${
+                        editTimeSlot === slot
+                          ? 'bg-accent border-accent text-white'
+                          : 'bg-black/30 border-white/5 text-foreground hover:border-accent/40'
+                      }`}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <span className="text-[10px] font-bold text-text-muted uppercase">Driving License</span>
+                <input
+                  type="text"
+                  placeholder="e.g. DL-12345"
+                  value={editLicense}
+                  onChange={(e) => setEditLicense(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 text-foreground px-3.5 py-2.5 rounded-lg outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <span className="text-[10px] font-bold text-text-muted uppercase">Comments / Notes</span>
+                <textarea
+                  rows={2}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 text-foreground px-3.5 py-2.5 rounded-lg outline-none focus:ring-1 focus:ring-accent resize-none"
+                />
+              </div>
+
+              {editError && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-[10px]">
+                  {editError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-card-border/50">
+                <button
+                  type="button"
+                  onClick={() => setSelectedBookingForEdit(null)}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  {editLoading && <RefreshCw size={12} className="animate-spin" />}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
 

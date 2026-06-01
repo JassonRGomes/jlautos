@@ -62,14 +62,18 @@ interface Vehicle {
 
 interface Booking {
   id: string;
-  userId: string;
-  user: { name: string; email: string; phone?: string };
+  bookingReference: string;
+  customerId: string;
+  customer?: { name: string; email: string; phone?: string };
   vehicleId: string;
-  vehicle: Vehicle;
-  date: string;
-  timeSlot: string;
-  eventType: 'VISIT' | 'TEST_DRIVE';
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELED';
+  vehicle?: Vehicle;
+  bookingDate: string;
+  bookingTime: string;
+  status: string;
+  customerNotes?: string;
+  dealerNotes?: string;
+  cancellationReason?: string;
+  rejectionReason?: string;
   createdAt: string;
 }
 
@@ -100,7 +104,21 @@ export default function AdministrativePanel() {
   // Booking action states
   const [bookingActionLoading, setBookingActionLoading] = useState<Record<string, boolean>>({});
   const [cancelModal, setCancelModal] = useState<{ open: boolean; bookingId: string; customerName: string } | null>(null);
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; bookingId: string; customerName: string } | null>(null);
+  const [modifyModal, setModifyModal] = useState<{ open: boolean; booking: any } | null>(null);
+  const [rejectionReasonText, setRejectionReasonText] = useState('');
+  const [cancellationReasonText, setCancellationReasonText] = useState('');
+  
+  // Reschedule Form states
+  const [modifyDate, setModifyDate] = useState('');
+  const [modifyTimeSlot, setModifyTimeSlot] = useState('');
+  const [modifyVehicleId, setModifyVehicleId] = useState('');
+  const [modifyNotes, setModifyNotes] = useState('');
+  const [bookingStatusFilter, setBookingStatusFilter] = useState('');
+  const [bookingSearchQuery, setBookingSearchQuery] = useState('');
+
   const [smsToast, setSmsToast] = useState<{ visible: boolean; sent: boolean; message: string } | null>(null);
+
 
   // Inventory Database states
   const [inventory, setInventory] = useState<Vehicle[]>([]);
@@ -181,58 +199,85 @@ export default function AdministrativePanel() {
     }
   }, [user, loadingAuth]);
 
-  // 2. Sync all admin datastores
+  // 2. Sync all admin datastores — each source is independent so one failure won't block others
   async function syncLedgers() {
+    setLoadingData(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    const ts = Date.now();
+    const token = typeof window !== 'undefined' ? localStorage.getItem('jl_auth_token') : null;
+    const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+    const syncErrors: string[] = [];
+
+    // A. Sync Inventory (public endpoint — no auth needed)
     try {
-      setLoadingData(true);
-      setErrorMsg('');
-      setSuccessMsg('');
-
-      const ts = Date.now();
-
-      // A. Sync Inventory
       const invRes = await axios.get(`${BACKEND_URL}/api/vehicles?_t=${ts}`);
-      if (invRes.data && invRes.data.vehicles) {
-        // Parse images if returned as string
+      if (invRes.data?.vehicles) {
         const parsed = invRes.data.vehicles.map((v: any) => {
-          let imgs = [];
+          let imgs: string[] = [];
           if (typeof v.images === 'string') {
-            try { imgs = JSON.parse(v.images); } catch (e) { imgs = [v.images]; }
-          } else { imgs = v.images; }
+            try { imgs = JSON.parse(v.images); } catch { imgs = [v.images]; }
+          } else if (Array.isArray(v.images)) {
+            imgs = v.images;
+          }
           return { ...v, images: imgs };
         });
         setInventory(parsed);
       }
+    } catch (err: any) {
+      console.error('[Sync] Inventory fetch failed:', err);
+      syncErrors.push('Inventory');
+    }
 
-      // B. Sync Bookings
-      const bookRes = await axios.get(`${BACKEND_URL}/api/bookings/ledger?_t=${ts}`);
-      const bookingsRaw = bookRes.data?.bookings || bookRes.data?.ledger || bookRes.data?.data;
-      if (bookingsRaw) {
+    // B. Sync Bookings (admin-only endpoint)
+    // Silently ensure test_drive_bookings table exists before querying
+    try { await axios.get(`${BACKEND_URL}/api/settings/fix-bookings`); } catch { /* silent */ }
+    try {
+      const bookRes = await axios.get(
+        `${BACKEND_URL}/api/dealer/bookings?status=${bookingStatusFilter}&search=${bookingSearchQuery}&_t=${ts}`,
+        { headers: authHeader }
+      );
+      const bookingsRaw = bookRes.data?.data;
+      if (Array.isArray(bookingsRaw)) {
         const parsedBookings = bookingsRaw.map((b: any) => {
-          let imgs = [];
+          let imgs: string[] = [];
           if (b.vehicle && typeof b.vehicle.images === 'string') {
-            try { imgs = JSON.parse(b.vehicle.images); } catch (e) { imgs = [b.vehicle.images]; }
-          } else if (b.vehicle && b.vehicle.images) { 
-            imgs = b.vehicle.images; 
+            try { imgs = JSON.parse(b.vehicle.images); } catch { imgs = [b.vehicle.images]; }
+          } else if (b.vehicle && Array.isArray(b.vehicle.images)) {
+            imgs = b.vehicle.images;
           }
           return { ...b, vehicle: b.vehicle ? { ...b.vehicle, images: imgs } : null };
         });
         setBookings(parsedBookings);
       }
+    } catch (err: any) {
+      console.error('[Sync] Bookings fetch failed:', err);
+      syncErrors.push('Bookings');
+    }
 
       // D. Sync Customers Directories
       const custRes = await axios.get(`${BACKEND_URL}/api/settings/customers?_t=${ts}`);
       if (custRes.data && custRes.data.registry) {
         setCustomers(custRes.data.registry);
       }
+    } catch (err: any) {
+      console.error('[Sync] Customers fetch failed:', err);
+      syncErrors.push('Customers');
+    }
 
+    setLoadingData(false);
+
+    if (syncErrors.length === 0) {
       setSuccessMsg('All registers synchronized successfully.');
       setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (err: any) {
-      console.error('Failed to sync administrative datastores:', err);
-      setErrorMsg('Failed to sync server metadata. Check backend connection.');
-    } finally {
-      setLoadingData(false);
+    } else if (syncErrors.length < 4) {
+      // Partial success — some loaded, some didn't
+      setSuccessMsg(`Sync complete (partial). Failed sections: ${syncErrors.join(', ')}. Check console for details.`);
+      setTimeout(() => setSuccessMsg(''), 6000);
+    } else {
+      // Everything failed — likely a real connection problem
+      setErrorMsg('Failed to sync server metadata. Check backend connection and authentication.');
     }
   };
 
@@ -251,8 +296,12 @@ export default function AdministrativePanel() {
       setSuccessMsg('');
       setErrorMsg('');
 
+      const token = localStorage.getItem('jl_auth_token');
       const res = await axios.post(`${BACKEND_URL}/api/vehicles/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        },
       });
 
       if (res.data && res.data.urls) {
@@ -275,6 +324,7 @@ export default function AdministrativePanel() {
       setErrorMsg('');
       setSuccessMsg('');
 
+      const token = localStorage.getItem('jl_auth_token');
       const res = await axios.put(`${BACKEND_URL}/api/settings`, {
         address: formAddress,
         phone: formPhone,
@@ -285,6 +335,8 @@ export default function AdministrativePanel() {
           saturday: formSaturday,
           sunday: formSunday,
         },
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (res.data) {
@@ -316,8 +368,12 @@ export default function AdministrativePanel() {
       setSuccessMsg('');
       setErrorMsg('');
 
+      const token = localStorage.getItem('jl_auth_token');
       const res = await axios.post(`${BACKEND_URL}/api/vehicles/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        },
       });
 
       if (res.data && res.data.urls && res.data.urls.length > 0) {
@@ -380,11 +436,16 @@ export default function AdministrativePanel() {
       setErrorMsg('');
       setSuccessMsg('');
 
+      const token = localStorage.getItem('jl_auth_token');
       if (isEditing && editingVehicleId) {
-        await axios.put(`${BACKEND_URL}/api/vehicles/${editingVehicleId}`, payload);
+        await axios.put(`${BACKEND_URL}/api/vehicles/${editingVehicleId}`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setSuccessMsg('Dealership asset specifications updated.');
       } else {
-        await axios.post(`${BACKEND_URL}/api/vehicles`, payload);
+        await axios.post(`${BACKEND_URL}/api/vehicles`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setSuccessMsg('New luxury model appended to Digital Showroom.');
       }
 
@@ -450,7 +511,10 @@ export default function AdministrativePanel() {
     if (!window.confirm('Retire this luxury vehicle asset from active digital showroom feeds?')) return;
     try {
       setLoadingData(true);
-      await axios.delete(`${BACKEND_URL}/api/vehicles/${id}`);
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.delete(`${BACKEND_URL}/api/vehicles/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setSuccessMsg('Asset cataloged retired successfully.');
       syncLedgers();
     } catch (err: any) {
@@ -493,34 +557,21 @@ export default function AdministrativePanel() {
     setTimeout(() => setSmsToast(null), 4000);
   };
 
-  // 5. Update Booking Event Resolution (with SMS feedback)
-  const handleUpdateBookingStatus = async (id: string, newStatus: 'CONFIRMED' | 'CANCELED') => {
-    // If cancelling, show modal first
-    if (newStatus === 'CANCELED') {
-      const b = bookings.find((bk) => bk.id === id);
-      setCancelModal({ open: true, bookingId: id, customerName: b?.user?.name || 'this customer' });
-      return;
-    }
-    await _doUpdateBookingStatus(id, newStatus);
-  };
-
-  const _doUpdateBookingStatus = async (id: string, newStatus: 'CONFIRMED' | 'CANCELED') => {
-    setCancelModal(null);
+  // 5. Test Drive Booking Action Resolvers
+  const handleApproveBooking = async (id: string) => {
     setBookingActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
-      const res = await axios.patch(`${BACKEND_URL}/api/bookings/${id}/status`, { status: newStatus });
-      const label = newStatus === 'CONFIRMED' ? 'Confirmed ✅' : 'Cancelled ❌';
-      setSuccessMsg(`Booking ${label} — SMS notification dispatched to customer.`);
-
-      // Show SMS toast
-      const smsSent: boolean = res.data?.smsSent ?? false;
-      const smsLog: string   = res.data?.smsLog   ?? 'No SMS info returned.';
-      showSmsToast(smsSent, smsSent ? `SMS sent to customer.` : smsLog);
-
+      const token = localStorage.getItem('jl_auth_token');
+      const res = await axios.put(`${BACKEND_URL}/api/dealer/bookings/${id}/approve`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuccessMsg('Booking approved successfully. Invitation dispatched.');
+      const smsSent = res.data?.smsSent ?? true;
+      showSmsToast(smsSent, smsSent ? 'SMS sent to customer.' : 'SMS dispatch mock.');
       syncLedgers();
     } catch (err: any) {
-      console.error('Booking resolve error:', err);
-      setErrorMsg(err.response?.data?.message || 'Failed to update booking status.');
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || 'Failed to approve booking.');
     } finally {
       setBookingActionLoading((prev) => ({ ...prev, [id]: false }));
       setTimeout(() => setSuccessMsg(''), 4000);
@@ -535,7 +586,10 @@ export default function AdministrativePanel() {
       setSuccessMsg('');
       setErrorMsg('');
 
-      const res = await axios.post(`${BACKEND_URL}/api/settings/newsletter`, { vehicleId });
+      const token = localStorage.getItem('jl_auth_token');
+      const res = await axios.post(`${BACKEND_URL}/api/settings/newsletter`, { vehicleId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setSuccessMsg(res.data.message || 'Newsletter broadcast dispatched successfully.');
     } catch (err: any) {
       console.error('Newsletter blast error:', err);
@@ -1079,10 +1133,59 @@ export default function AdministrativePanel() {
           {/* TAB 2: CRM BOOKINGS TIMELINE */}
           {activeTab === 'bookings' && (
             <div className="bg-card border border-card-border p-6 rounded-xl space-y-6">
-              <div className="border-b border-card-border pb-3 flex justify-between items-center">
-                <h3 className="font-extrabold text-base uppercase text-foreground">
-                  CRM VIP Bookings Ledger ({bookings.length})
-                </h3>
+              <div className="border-b border-card-border pb-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-extrabold text-base uppercase text-foreground">
+                    Test Drive Management ({bookings.length})
+                  </h3>
+                  <p className="text-[10px] text-text-muted mt-0.5 uppercase tracking-wider font-semibold">
+                    Dealer commands for approving, modify, cancelling, and tracking bookings.
+                  </p>
+                </div>
+
+                {/* Search query input */}
+                <div className="flex items-center bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 w-full md:w-80 shadow-inner">
+                  <input
+                    type="text"
+                    placeholder="Search client, email, ref, or vehicle..."
+                    value={bookingSearchQuery}
+                    onChange={(e) => setBookingSearchQuery(e.target.value)}
+                    className="w-full bg-transparent border-none text-xs text-foreground outline-none placeholder-text-muted"
+                  />
+                  {bookingSearchQuery && (
+                    <button
+                      onClick={() => setBookingSearchQuery('')}
+                      className="text-text-muted hover:text-foreground text-[10px] font-bold px-1"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div className="flex flex-wrap gap-2 py-1">
+                {[
+                  { label: 'All Requests', value: '' },
+                  { label: 'Pending Approval', value: 'Pending Approval' },
+                  { label: 'Approved', value: 'Approved' },
+                  { label: 'Modified', value: 'Modified by Dealer' },
+                  { label: 'Cancelled', value: 'Cancelled' },
+                  { label: 'Completed', value: 'Completed' },
+                  { label: 'Rejected', value: 'Rejected' },
+                ].map((btn) => (
+                  <button
+                    key={btn.label}
+                    onClick={() => setBookingStatusFilter(btn.value)}
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all cursor-pointer border ${
+                      bookingStatusFilter === btn.value
+                        ? 'bg-accent border-accent text-white shadow-sm'
+                        : 'bg-black/30 border-white/5 text-text-muted hover:text-foreground hover:border-white/15'
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
               </div>
 
               {bookings.length > 0 ? (
@@ -1090,119 +1193,142 @@ export default function AdministrativePanel() {
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-card-border text-text-muted uppercase font-bold tracking-wider">
+                        <th className="py-3 px-4">Booking ID</th>
                         <th className="py-3 px-4">Client Detail</th>
-                        <th className="py-3 px-4">Dealership Asset Target</th>
-                        <th className="py-3 px-4">Calendar Date / Slot</th>
-                        <th className="py-3 px-4">Event Class</th>
-                        <th className="py-3 px-4">Active Status</th>
+                        <th className="py-3 px-4">Vehicle secured</th>
+                        <th className="py-3 px-4">Date / Time Slot</th>
+                        <th className="py-3 px-4">Status</th>
                         <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-card-border/60">
-                      {bookings.map((booking) => (
-                        <tr key={booking.id} className="hover:bg-foreground/5 transition-colors">
-                          
-                          {/* Client Detail */}
-                          <td className="py-3.5 px-4">
-                            <div className="font-bold text-foreground">{booking.user.name}</div>
-                            <div className="text-[10px] text-text-muted">{booking.user.email} &bull; {booking.user.phone || 'No phone'}</div>
-                          </td>
+                      {bookings.map((booking) => {
+                        const canApprove = ['Pending Approval', 'Modified by Dealer'].includes(booking.status);
+                        const canReject = booking.status === 'Pending Approval';
+                        const canCancel = ['Approved', 'Modified by Dealer'].includes(booking.status);
+                        const canModify = ['Pending Approval', 'Approved', 'Modified by Dealer'].includes(booking.status);
+                        const canComplete = ['Approved', 'Modified by Dealer'].includes(booking.status);
+                        const canDelete = ['Completed', 'Cancelled', 'Rejected'].includes(booking.status);
 
-                          {/* Asset Target */}
-                          <td className="py-3.5 px-4">
-                            <span className="font-semibold text-foreground">
-                              {booking.vehicle ? `${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}` : 'Vehicle Deleted'}
-                            </span>
-                          </td>
+                        return (
+                          <tr key={booking.id} className="hover:bg-foreground/5 transition-colors">
+                            {/* Booking ID */}
+                            <td className="py-3.5 px-4 font-mono font-bold text-accent">
+                              #{booking.bookingReference}
+                            </td>
 
-                          {/* Calendar */}
-                          <td className="py-3.5 px-4">
-                            <div className="font-bold text-foreground">
-                              {new Date(booking.date).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })}
-                            </div>
-                            <div className="text-[10px] text-text-muted font-mono">{booking.timeSlot}</div>
-                          </td>
+                            {/* Client Detail */}
+                            <td className="py-3.5 px-4">
+                              <div className="font-bold text-foreground">{booking.customer?.name}</div>
+                              <div className="text-[10px] text-text-muted">{booking.customer?.email} &bull; {booking.customer?.phone || 'No phone'}</div>
+                            </td>
 
-                          {/* Class */}
-                          <td className="py-3.5 px-4 font-bold">
-                            <span className="text-[9px] uppercase tracking-wider bg-zinc-900 border border-zinc-800 text-white rounded px-2.5 py-0.5">
-                              {booking.eventType === 'VISIT' ? 'PRIVATE VIEW' : 'VIP TEST DRIVE'}
-                            </span>
-                          </td>
-
-                          {/* Status */}
-                          <td className="py-3.5 px-4">
-                            {booking.status === 'PENDING' && (
-                              <span className="px-2 py-0.5 text-[9px] font-bold bg-blue-500/10 text-blue-500 rounded border border-blue-500/20 uppercase">
-                                PENDING CRM
+                            {/* Asset Target */}
+                            <td className="py-3.5 px-4">
+                              <span className="font-semibold text-foreground">
+                                {booking.vehicle ? `${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}` : 'Vehicle Deleted'}
                               </span>
-                            )}
-                            {booking.status === 'CONFIRMED' && (
-                              <span className="px-2 py-0.5 text-[9px] font-bold bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20 uppercase">
-                                CONFIRMED VIP
-                              </span>
-                            )}
-                            {booking.status === 'CANCELED' && (
-                              <span className="px-2 py-0.5 text-[9px] font-bold bg-red-500/10 text-red-500 rounded border border-red-500/20 uppercase">
-                                CANCELED
-                              </span>
-                            )}
-                          </td>
+                            </td>
 
-                          {/* Actions */}
-                          <td className="py-3.5 px-4 text-right">
-                            {booking.status === 'PENDING' ? (
-                              <div className="flex justify-end gap-2">
-                                {/* CONFIRM button */}
-                                <button
-                                  id={`confirm-booking-${booking.id}`}
-                                  onClick={() => handleUpdateBookingStatus(booking.id, 'CONFIRMED')}
-                                  disabled={!!bookingActionLoading[booking.id]}
-                                  className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black px-4 py-2 rounded-md transition-all flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:scale-[1.02]"
-                                  title="Confirm booking & SMS customer"
-                                >
-                                  {bookingActionLoading[booking.id] ? (
-                                    <RefreshCw size={13} className="animate-spin" />
-                                  ) : (
-                                    <Check size={13} />
-                                  )}
-                                  Approve
-                                </button>
-                                {/* CANCEL button */}
-                                <button
-                                  id={`cancel-booking-${booking.id}`}
-                                  onClick={() => handleUpdateBookingStatus(booking.id, 'CANCELED')}
-                                  disabled={!!bookingActionLoading[booking.id]}
-                                  className="bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 text-red-500 border border-red-500/30 px-4 py-2 rounded-md transition-all flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider hover:scale-[1.02]"
-                                  title="Cancel booking & SMS customer"
-                                >
-                                  {bookingActionLoading[booking.id] ? (
-                                    <RefreshCw size={13} className="animate-spin" />
-                                  ) : (
-                                    <X size={13} />
-                                  )}
-                                  Reject
-                                </button>
+                            {/* Calendar */}
+                            <td className="py-3.5 px-4">
+                              <div className="font-bold text-foreground">
+                                {new Date(booking.bookingDate).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}
                               </div>
-                            ) : (
-                              <div className="text-right">
-                                <span className={`inline-block text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-md shadow-sm ${
-                                  booking.status === 'CONFIRMED'
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
-                                    : 'bg-red-500/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
-                                }`}>
-                                  {booking.status === 'CONFIRMED' ? '✅ Approved' : '❌ Rejected'}
-                                </span>
-                              </div>
-                            )}
-                          </td>
+                              <div className="text-[10px] text-text-muted font-mono">{booking.bookingTime}</div>
+                            </td>
 
-                        </tr>
-                      ))}
+                            {/* Status */}
+                            <td className="py-3.5 px-4">
+                              <span className={`px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded border ${
+                                booking.status === 'Approved' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
+                                booking.status === 'Pending Approval' ? 'bg-blue-500/10 border-blue-500/20 text-blue-500' :
+                                booking.status === 'Modified by Dealer' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
+                                booking.status === 'Cancelled' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
+                                booking.status === 'Rejected' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
+                                'bg-zinc-500/10 border-zinc-500/20 text-zinc-400' // Completed
+                              }`}>
+                                {booking.status}
+                              </span>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex justify-end gap-1.5 flex-wrap">
+                                {canApprove && (
+                                  <button
+                                    onClick={() => handleApproveBooking(booking.id)}
+                                    disabled={!!bookingActionLoading[booking.id]}
+                                    className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                                    title="Approve & Send Invitation"
+                                  >
+                                    Approve
+                                  </button>
+                                )}
+                                
+                                {canModify && (
+                                  <button
+                                    onClick={() => startModifyBooking(booking)}
+                                    disabled={!!bookingActionLoading[booking.id]}
+                                    className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                                    title="Reschedule / Change Vehicle"
+                                  >
+                                    Modify
+                                  </button>
+                                )}
+
+                                {canComplete && (
+                                  <button
+                                    onClick={() => handleCompleteBooking(booking.id)}
+                                    disabled={!!bookingActionLoading[booking.id]}
+                                    className="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                                    title="Mark Completed"
+                                  >
+                                    Complete
+                                  </button>
+                                )}
+
+                                {canReject && (
+                                  <button
+                                    onClick={() => setRejectModal({ open: true, bookingId: booking.id, customerName: booking.customer?.name || 'Customer' })}
+                                    disabled={!!bookingActionLoading[booking.id]}
+                                    className="bg-red-500/15 hover:bg-red-500/25 disabled:opacity-50 text-red-400 border border-red-500/30 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                                    title="Reject Request"
+                                  >
+                                    Reject
+                                  </button>
+                                )}
+
+                                {canCancel && (
+                                  <button
+                                    onClick={() => setCancelModal({ open: true, bookingId: booking.id, customerName: booking.customer?.name || 'Customer' })}
+                                    disabled={!!bookingActionLoading[booking.id]}
+                                    className="bg-red-500/15 hover:bg-red-500/25 disabled:opacity-50 text-red-400 border border-red-500/30 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                                    title="Cancel Appointment"
+                                  >
+                                    Cancel
+                                  </button>
+                                )}
+
+                                {canDelete && (
+                                  <button
+                                    onClick={() => handleSoftDeleteBooking(booking.id)}
+                                    disabled={!!bookingActionLoading[booking.id]}
+                                    className="bg-black/40 hover:bg-red-950/20 disabled:opacity-50 text-text-muted hover:text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase cursor-pointer"
+                                    title="Archive / Soft Delete"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1210,7 +1336,7 @@ export default function AdministrativePanel() {
                 <div className="text-center py-12 bg-background border border-card-border rounded-lg">
                   <Calendar size={36} className="mx-auto text-text-muted mb-3 opacity-40" />
                   <h4 className="font-bold text-sm uppercase text-foreground">No VIP Bookings</h4>
-                  <p className="text-xs text-text-muted">No scheduled viewings under CRM evaluation.</p>
+                  <p className="text-xs text-text-muted">No scheduled viewings match the current filter criteria.</p>
                 </div>
               )}
             </div>
@@ -1573,6 +1699,205 @@ export default function AdministrativePanel() {
         </div>
 
       </div>
+
+      {/* 4. DEALER DIALOGS & MODALS */}
+      {/* Reschedule/Modify Modal */}
+      {modifyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-card border border-card-border p-6 rounded-2xl shadow-2xl relative space-y-5">
+            <button
+              onClick={() => setModifyModal(null)}
+              className="absolute top-4 right-4 text-text-muted hover:text-foreground cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <div className="border-b border-card-border pb-3">
+              <span className="text-[9px] font-extrabold text-accent uppercase tracking-widest font-mono">CONCIERGE CRM</span>
+              <h3 className="text-xl font-bold uppercase text-foreground mt-0.5">Reschedule Appointment</h3>
+            </div>
+            
+            <form onSubmit={handleModifyBookingSubmit} className="space-y-4 text-xs">
+              <div className="flex flex-col space-y-1.5">
+                <span className="text-[10px] font-bold text-text-muted uppercase">Assign Showroom Vehicle</span>
+                <select
+                  required
+                  value={modifyVehicleId}
+                  onChange={(e) => setModifyVehicleId(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 text-foreground px-3.5 py-2.5 rounded-lg outline-none focus:ring-1 focus:ring-accent"
+                >
+                  <option value="" disabled>Select vehicle...</option>
+                  {inventory.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.year} {v.make} {v.model} (${Number(v.price).toLocaleString()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <span className="text-[10px] font-bold text-text-muted uppercase">New Booking Date</span>
+                <input
+                  type="date"
+                  required
+                  value={modifyDate}
+                  onChange={(e) => setModifyDate(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 text-foreground px-3.5 py-2.5 rounded-lg outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <span className="text-[10px] font-bold text-text-muted uppercase">Operational Slot</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {['09:00 AM', '10:30 AM', '01:00 PM', '03:00 PM', '04:30 PM'].map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setModifyTimeSlot(slot)}
+                      className={`py-2 px-1 text-[10px] font-bold rounded border transition-all cursor-pointer ${
+                        modifyTimeSlot === slot
+                          ? 'bg-accent border-accent text-white shadow-md'
+                          : 'bg-black/30 border-white/5 text-foreground hover:border-accent/40'
+                      }`}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <span className="text-[10px] font-bold text-text-muted uppercase">Dealer Instructions / Notes</span>
+                <textarea
+                  rows={2}
+                  value={modifyNotes}
+                  onChange={(e) => setModifyNotes(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 text-foreground px-3.5 py-2.5 rounded-lg outline-none focus:ring-1 focus:ring-accent resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-card-border/50">
+                <button
+                  type="button"
+                  onClick={() => setModifyModal(null)}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Reschedule & Notify
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-card border border-card-border p-6 rounded-2xl shadow-2xl relative space-y-5">
+            <button
+              onClick={() => setRejectModal(null)}
+              className="absolute top-4 right-4 text-text-muted hover:text-foreground cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <div className="border-b border-card-border pb-3">
+              <span className="text-[9px] font-extrabold text-red-500 uppercase tracking-widest font-mono">REJECT REQUEST</span>
+              <h3 className="text-xl font-bold uppercase text-foreground mt-0.5">Reject Booking</h3>
+            </div>
+            
+            <form onSubmit={handleRejectBookingSubmit} className="space-y-4 text-xs">
+              <p className="text-text-muted">
+                You are rejecting the test drive request from <strong className="text-foreground">{rejectModal.customerName}</strong>. Please provide a mandatory rejection reason to inform the customer.
+              </p>
+              <div className="flex flex-col space-y-1.5">
+                <span className="text-[10px] font-bold text-text-muted uppercase">Reason for Rejection *</span>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="e.g. The selected vehicle is booked for maintenance on this date."
+                  value={rejectionReasonText}
+                  onChange={(e) => setRejectionReasonText(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 text-foreground px-3.5 py-2.5 rounded-lg outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500/50 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-card-border/50">
+                <button
+                  type="button"
+                  onClick={() => setRejectModal(null)}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Go Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={!rejectionReasonText.trim()}
+                  className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Confirm Rejection
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Modal */}
+      {cancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-card border border-card-border p-6 rounded-2xl shadow-2xl relative space-y-5">
+            <button
+              onClick={() => setCancelModal(null)}
+              className="absolute top-4 right-4 text-text-muted hover:text-foreground cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <div className="border-b border-card-border pb-3">
+              <span className="text-[9px] font-extrabold text-red-500 uppercase tracking-widest font-mono">CANCEL APPOINTMENT</span>
+              <h3 className="text-xl font-bold uppercase text-foreground mt-0.5">Cancel Approved Booking</h3>
+            </div>
+            
+            <form onSubmit={handleCancelBookingSubmit} className="space-y-4 text-xs">
+              <p className="text-text-muted">
+                You are cancelling the approved test drive for <strong className="text-foreground">{cancelModal.customerName}</strong>. Please provide a mandatory cancellation reason.
+              </p>
+              <div className="flex flex-col space-y-1.5">
+                <span className="text-[10px] font-bold text-text-muted uppercase">Reason for Cancellation *</span>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="e.g. Dealership floor will be closed for a private event."
+                  value={cancellationReasonText}
+                  onChange={(e) => setCancellationReasonText(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 text-foreground px-3.5 py-2.5 rounded-lg outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500/50 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-card-border/50">
+                <button
+                  type="button"
+                  onClick={() => setCancelModal(null)}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Go Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={!cancellationReasonText.trim()}
+                  className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Confirm Cancellation
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

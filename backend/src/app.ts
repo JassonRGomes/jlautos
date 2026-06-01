@@ -10,6 +10,7 @@ import path from 'path';
 import authRoutes from './routes/authRoutes';
 import vehicleRoutes from './routes/vehicleRoutes';
 import bookingRoutes from './routes/bookingRoutes';
+import dealerBookingRoutes from './routes/dealerBookingRoutes';
 import testDriveRoutes from './routes/testDriveRoutes';
 import customerRoutes from './routes/customerRoutes';
 import uploadRoutes from './routes/uploadRoutes';
@@ -81,6 +82,7 @@ app.get('/health', async (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/dealer/bookings', dealerBookingRoutes);
 app.use('/api/test-drives', testDriveRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/uploads', uploadRoutes);

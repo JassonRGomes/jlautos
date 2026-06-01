@@ -9,5 +9,6 @@ router.post('/submit', offerController_1.submitOffer);
 router.get('/my', offerController_1.getCustomerOffers);
 router.get('/manager', auth_1.requireAdmin, offerController_1.getOffersManager);
 router.patch('/:id/status', auth_1.requireAdmin, offerController_1.updateOfferStatus);
+router.delete('/:id', offerController_1.deleteOffer);
 exports.default = router;
 //# sourceMappingURL=offerRoutes.js.map

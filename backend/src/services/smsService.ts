@@ -186,3 +186,51 @@ export const getSMSServiceStatus = (): { enabled: boolean; configured: boolean; 
   configured: !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE),
   mockMode: !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN,
 });
+
+// ─── Test Drive Bookings SMS Notifications ─────────────────────────────────────
+
+/**
+ * Send SMS to the customer when their booking is created/requested.
+ */
+export const sendTestDriveCreatedSMS = async (bookingRef: string, phone: string): Promise<boolean> => {
+  const body = `Your booking request #${bookingRef} has been received and is awaiting approval.`;
+  const key = `customer-created-${bookingRef}`;
+  return sendWithRetry({ to: phone, body, key, attempts: 0 });
+};
+
+/**
+ * Send SMS to the customer when their booking is approved.
+ */
+export const sendTestDriveApprovedSMS = async (bookingRef: string, phone: string): Promise<boolean> => {
+  const body = `Your test drive booking #${bookingRef} has been approved. Check your email for details.`;
+  const key = `customer-approved-${bookingRef}`;
+  return sendWithRetry({ to: phone, body, key, attempts: 0 });
+};
+
+/**
+ * Send SMS to the customer when their booking is modified by the dealer.
+ */
+export const sendTestDriveModifiedSMS = async (bookingRef: string, phone: string): Promise<boolean> => {
+  const body = `Your booking #${bookingRef} has been updated. Please review the new schedule.`;
+  const key = `customer-modified-${bookingRef}`;
+  return sendWithRetry({ to: phone, body, key, attempts: 0 });
+};
+
+/**
+ * Send SMS to the customer when their booking is cancelled.
+ */
+export const sendTestDriveCancelledSMS = async (bookingRef: string, phone: string): Promise<boolean> => {
+  const body = `Your booking #${bookingRef} has been cancelled.`;
+  const key = `customer-cancelled-${bookingRef}`;
+  return sendWithRetry({ to: phone, body, key, attempts: 0 });
+};
+
+/**
+ * Send SMS to the customer when their booking is rejected.
+ */
+export const sendTestDriveRejectedSMS = async (bookingRef: string, phone: string): Promise<boolean> => {
+  const body = `Your booking #${bookingRef} was not approved.`;
+  const key = `customer-rejected-${bookingRef}`;
+  return sendWithRetry({ to: phone, body, key, attempts: 0 });
+};
+

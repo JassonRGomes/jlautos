@@ -4,11 +4,11 @@
 
 | Campo         | Valor                                       |
 |---------------|---------------------------------------------|
-| Banco         | `u373012508_JLautos`                        |
-| Usuário MySQL | `u373012508_jlautos`                        |
-| Senha         | `J210870c`                                  |
-| Host          | `lightcyan-shark-136321.hostingersite.com`  |
-| Porta         | `3306`                                      |
+| Banco         | `db_name`                        |
+| Usuário MySQL | `db_user`                        |
+| Senha         | `db_pass`                                  |
+| Host          | `host_name`  |
+| Porta         | `33XX`                                      |
 
 ---
 
@@ -16,8 +16,8 @@
 
 | Campo | Valor              |
 |-------|--------------------|
-| Email | `admin@jlautos.com` |
-| Senha | `admin`            |
+| Email | `user` |
+| Senha | `pass`            |
 
 ---
 
@@ -26,15 +26,15 @@
 ### 1. Conectar via SSH
 No hPanel → SSH Access, obtenha as credenciais e conecte:
 ```bash
-ssh u373012508@lightcyan-shark-136321.hostingersite.com -p 65002
+ssh user_name@site_name.com -p 65002
 ```
 
 ### 2. Fazer upload do projeto
-No hPanel, use o **File Manager** ou **FTP** para enviar a pasta `backend/` para o servidor (ex: `~/domains/lightcyan-shark-136321.hostingersite.com/public_html/backend/`).
+No hPanel, use o **File Manager** ou **FTP** para enviar a pasta `backend/` para o servidor (ex: `~/domains/site_name.com/public_html/backend/`).
 
 ### 3. Executar o setup automático via SSH
 ```bash
-cd ~/domains/lightcyan-shark-136321.hostingersite.com/public_html
+cd ~/domains/site_name/public_html
 bash scripts/setup-hostinger.sh
 ```
 
@@ -84,7 +84,7 @@ Resposta esperada:
 
 ## Estrutura do Banco de Dados
 
-O Prisma vai criar automaticamente as seguintes tabelas no banco `u373012508_JLautos`:
+O Prisma vai criar automaticamente as seguintes tabelas no banco `db_name`:
 
 - `User` — Usuários do sistema (admin, vendedores)
 - `Session` — Sessões JWT
@@ -125,9 +125,9 @@ npx ts-node src/prisma/seed.ts
 ## Variáveis de Ambiente Importantes (`backend/.env`)
 
 ```env
-DATABASE_URL="mysql://u373012508_jlautos:J210870c@lightcyan-shark-136321.hostingersite.com:3306/u373012508_JLautos"
+DATABASE_URL="mysql://db_userc@host_name:3306/db_name"
 PORT=5001
 NODE_ENV=production
-FRONTEND_URL=https://lightcyan-shark-136321.hostingersite.com
+FRONTEND_URL=https://site_name
 JWT_SECRET=jesus_is_love
 ```
