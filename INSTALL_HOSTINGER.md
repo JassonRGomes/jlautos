@@ -4,11 +4,11 @@
 
 | Campo         | Valor                                       |
 |---------------|---------------------------------------------|
-| Banco         | `u373012508_JLautos`                        |
-| Usuário MySQL | `u373012508_jlautos`                        |
-| Senha         | `J210870c`                                  |
-| Host          | `lightcyan-shark-136321.hostingersite.com`  |
-| Porta         | `3306`                                      |
+| Banco         | `db_name`                        |
+| Usuário MySQL | `db_user`                        |
+| Senha         | `db_pass`                                  |
+| Host          | `host_name`  |
+| Porta         | `33XX`                                      |
 
 ---
 
@@ -16,8 +16,8 @@
 
 | Campo | Valor              |
 |-------|--------------------|
-| Email | `admin@jlautos.com` |
-| Senha | `admin`            |
+| Email | `user` |
+| Senha | `pass`            |
 
 ---
 
@@ -125,9 +125,9 @@ npx ts-node src/prisma/seed.ts
 ## Variáveis de Ambiente Importantes (`backend/.env`)
 
 ```env
-DATABASE_URL="mysql://u373012508_jlautos:J210870c@lightcyan-shark-136321.hostingersite.com:3306/u373012508_JLautos"
+DATABASE_URL="mysql://db_userc@host_name:3306/db_name"
 PORT=5001
 NODE_ENV=production
-FRONTEND_URL=https://lightcyan-shark-136321.hostingersite.com
+FRONTEND_URL=https://site_name
 JWT_SECRET=jesus_is_love
 ```
