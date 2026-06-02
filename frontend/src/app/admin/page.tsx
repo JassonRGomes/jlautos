@@ -579,6 +579,162 @@ export default function AdministrativePanel() {
     }
   };
 
+  const startModifyBooking = (booking: any) => {
+    setModifyModal({ open: true, booking });
+    setModifyDate(booking.bookingDate.split('T')[0]);
+    setModifyTimeSlot(booking.bookingTime);
+    setModifyVehicleId(booking.vehicleId);
+    setModifyNotes(booking.dealerNotes || '');
+  };
+
+  const handleCompleteBooking = async (id: string) => {
+    if (!window.confirm('Mark this test drive session as Completed?')) return;
+    setBookingActionLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/dealer/bookings/${id}/complete`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuccessMsg('Booking marked as Completed.');
+      syncLedgers();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || 'Failed to complete booking.');
+    } finally {
+      setBookingActionLoading((prev) => ({ ...prev, [id]: false }));
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
+  };
+
+  const handleSoftDeleteBooking = async (id: string) => {
+    if (!window.confirm('Soft delete this booking? It will be archived and hidden from general ledger views.')) return;
+    setBookingActionLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.delete(`${BACKEND_URL}/api/dealer/bookings/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuccessMsg('Booking archived successfully.');
+      syncLedgers();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || 'Failed to delete booking.');
+    } finally {
+      setBookingActionLoading((prev) => ({ ...prev, [id]: false }));
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
+  };
+
+  const handleRejectBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectModal) return;
+    const { bookingId } = rejectModal;
+    if (!rejectionReasonText.trim()) {
+      alert('Rejection reason is mandatory.');
+      return;
+    }
+    
+    setBookingActionLoading((prev) => ({ ...prev, [bookingId]: true }));
+    try {
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/dealer/bookings/${bookingId}/reject`, {
+        rejectionReason: rejectionReasonText,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuccessMsg('Booking request rejected. Customer notified.');
+      setRejectModal(null);
+      setRejectionReasonText('');
+      syncLedgers();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || 'Failed to reject booking.');
+    } finally {
+      setBookingActionLoading((prev) => ({ ...prev, [bookingId]: false }));
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
+  };
+
+  const handleCancelBookingDealer = async (id: string) => {
+    const reason = window.prompt('Provide a reason for cancellation (sent to customer):', 'Scheduling conflict');
+    if (reason === null) return;
+    setBookingActionLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/dealer/bookings/${id}/cancel`, { dealerNotes: reason }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuccessMsg('Booking cancelled and customer notified.');
+      syncLedgers();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || 'Failed to cancel booking.');
+    } finally {
+      setBookingActionLoading((prev) => ({ ...prev, [id]: false }));
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
+  };
+
+  const handleCancelBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cancelModal) return;
+    const { bookingId } = cancelModal;
+    if (!cancellationReasonText.trim()) {
+      alert('Cancellation reason is mandatory.');
+      return;
+    }
+    
+    setBookingActionLoading((prev) => ({ ...prev, [bookingId]: true }));
+    try {
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/dealer/bookings/${bookingId}/cancel`, {
+        cancellationReason: cancellationReasonText,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuccessMsg('Booking cancelled successfully. Customer notified.');
+      setCancelModal(null);
+      setCancellationReasonText('');
+      syncLedgers();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || 'Failed to cancel booking.');
+    } finally {
+      setBookingActionLoading((prev) => ({ ...prev, [bookingId]: false }));
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
+  };
+
+  const handleModifyBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modifyModal) return;
+    const id = modifyModal.booking.id;
+    setBookingActionLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/dealer/bookings/${id}/modify`, {
+        bookingDate: modifyDate,
+        bookingTime: modifyTimeSlot,
+        vehicleId: modifyVehicleId,
+        dealerNotes: modifyNotes
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuccessMsg('Booking modified successfully. Customer notified.');
+      setModifyModal(null);
+      syncLedgers();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || 'Failed to modify booking.');
+    } finally {
+      setBookingActionLoading((prev) => ({ ...prev, [id]: false }));
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
+  };
+
+  const handleDeleteBookingDealer = handleSoftDeleteBooking;
+
+
   // 7. Trigger Newsletter blast to customer registry list
   const handleTriggerNewsletter = async (vehicleId: string) => {
     if (!window.confirm('Trigger portfolio email blast for this stock item to all registered customer directories?')) return;
@@ -1717,7 +1873,7 @@ export default function AdministrativePanel() {
               <h3 className="text-xl font-bold uppercase text-foreground mt-0.5">Reschedule Appointment</h3>
             </div>
             
-            <form onSubmit={handleModifyBookingSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleModifyBooking} className="space-y-4 text-xs">
               <div className="flex flex-col space-y-1.5">
                 <span className="text-[10px] font-bold text-text-muted uppercase">Assign Showroom Vehicle</span>
                 <select

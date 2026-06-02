@@ -160,7 +160,7 @@ function CustomerDashboardInner() {
         });
         // For customers, ensure only own bookings are displayed
         if ((user?.role || '').toUpperCase() !== 'ADMIN') {
-          parsed = parsed.filter((b) => b.user && b.user.id === user.id);
+          parsed = parsed.filter((b: any) => b.user && b.user.id === user.id);
         }
         setBookings(parsed);
       }
@@ -229,6 +229,70 @@ function CustomerDashboardInner() {
       setFavorites((prev) => prev.filter((v) => v.id !== vehicleId));
     } catch (err) {
       console.error('Failed to untag favorite:', err);
+    }
+  };
+
+  const startEditBooking = (booking: Booking, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Extract License & Notes from b.customerNotes
+    const rawNotes = booking.customerNotes || '';
+    const match = rawNotes.match(/^\[Driving License: ([^\]]+)\]/);
+    const licenseVal = match ? match[1] : '';
+    const notesVal = rawNotes.replace(/^\[Driving License: [^\]]+\]\s*/, '');
+    
+    setSelectedBookingForEdit(booking);
+    setEditDate(booking.bookingDate.split('T')[0]);
+    setEditTimeSlot(booking.bookingTime);
+    setEditLicense(licenseVal);
+    setEditNotes(notesVal);
+    setEditError('');
+  };
+
+  const handleSaveEditBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBookingForEdit) return;
+    
+    // Validate past dates
+    const nextDate = new Date(editDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (nextDate < today) {
+      setEditError('Preferred date cannot be in the past.');
+      return;
+    }
+    
+    // Validate Sundays
+    if (nextDate.getDay() === 0) {
+      setEditError('Showroom is closed on Sundays. Please select Mon-Sat.');
+      return;
+    }
+
+    try {
+      setEditLoading(true);
+      setEditError('');
+      const token = localStorage.getItem('jl_auth_token');
+      
+      await axios.put(
+        `${BACKEND_URL}/api/bookings/${selectedBookingForEdit.id}`,
+        {
+          bookingDate: editDate,
+          bookingTime: editTimeSlot,
+          drivingLicenseNumber: editLicense,
+          customerNotes: editNotes,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      setSelectedBookingForEdit(null);
+      fetchDashboardData();
+    } catch (err: any) {
+      console.error('Failed to update booking:', err);
+      setEditError(err.response?.data?.message || 'Failed to update booking.');
+    } finally {
+      setEditLoading(false);
     }
   };
 
