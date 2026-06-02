@@ -8,8 +8,6 @@ async function main() {
   const bookings = await prisma.booking.findMany();
   console.log("Bookings:", bookings);
 
-  const offers = await prisma.offer.findMany();
-  console.log("Offers:", offers);
 }
 
 main().catch(e => console.error(e)).finally(() => prisma.$disconnect());

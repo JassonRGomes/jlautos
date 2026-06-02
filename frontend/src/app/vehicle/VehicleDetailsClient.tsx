@@ -484,7 +484,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
               </button>
             </div>
 
-            {/* Sharing and Proposals */}
+            {/* Sharing */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShareOpen(true)}

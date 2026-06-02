@@ -1471,7 +1471,7 @@ export default function AdministrativePanel() {
                     </div>
                     <h3 className="font-extrabold text-sm uppercase text-foreground tracking-tight">Sales & Revenue Performance</h3>
                     <p className="text-xs text-text-muted leading-relaxed font-light">
-                      Financial ledger tracing closed negotiation proposals, total revenue generation volume, buyer demographics, and closing timelines.
+                      Financial ledger tracing closed negotiations, total revenue generation volume, buyer demographics, and closing timelines.
                     </p>
                   </div>
 
