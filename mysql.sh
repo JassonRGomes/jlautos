@@ -5,10 +5,10 @@
 # Uso: ./mysql.sh          → abre o console interativo
 #      ./mysql.sh "SELECT * FROM User LIMIT 5;"  → executa query direta
 
-DB_USER="db_user"
-DB_PASS="db_pass"
-DB_NAME="db_name"
-DB_HOST="db_host"
+DB_USER="u373012508_jlautos"
+DB_PASS="J210870c"
+DB_NAME="u373012508_JLautos"
+DB_HOST="localhost"
 DB_PORT="3306"
 
 if [ -n "$1" ]; then

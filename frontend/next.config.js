@@ -25,6 +25,7 @@ const nextConfig = {
     ],
   },
   allowedDevOrigins: ['http://localhost:3000', 'http://localhost:3001'],
+  output: 'export',
 };
 
 module.exports = nextConfig;

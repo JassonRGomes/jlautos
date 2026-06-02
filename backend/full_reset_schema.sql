@@ -6,7 +6,7 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Drop all existing tables safely
-DROP TABLE IF EXISTS `Offer`;
+
 DROP TABLE IF EXISTS `AvailabilitySlot`;
 DROP TABLE IF EXISTS `Dealership`;
 DROP TABLE IF EXISTS `ActivityLog`;
@@ -320,18 +320,7 @@ CREATE TABLE `AvailabilitySlot` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
-CREATE TABLE `Offer` (
-    `id` VARCHAR(191) NOT NULL,
-    `userId` VARCHAR(191) NOT NULL,
-    `vehicleId` VARCHAR(191) NOT NULL,
-    `offerAmount` DECIMAL(12, 2) NOT NULL,
-    `status` VARCHAR(191) NOT NULL DEFAULT 'UNDER_REVIEW',
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
 
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
 ALTER TABLE `Session` ADD CONSTRAINT `Session_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -411,11 +400,7 @@ ALTER TABLE `ActivityLog` ADD CONSTRAINT `ActivityLog_performedBy_fkey` FOREIGN 
 -- AddForeignKey
 ALTER TABLE `AvailabilitySlot` ADD CONSTRAINT `AvailabilitySlot_dealershipId_fkey` FOREIGN KEY (`dealershipId`) REFERENCES `Dealership`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
-ALTER TABLE `Offer` ADD CONSTRAINT `Offer_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
-ALTER TABLE `Offer` ADD CONSTRAINT `Offer_vehicleId_fkey` FOREIGN KEY (`vehicleId`) REFERENCES `Vehicle`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- ─────────────────────────────────────────────────────────────────
 -- INSERÇÃO DO ADMIN PADRÃO

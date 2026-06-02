@@ -5,7 +5,6 @@
   "/api/revalidate/route": "/api/revalidate",
   "/book-test-drive/page": "/book-test-drive",
   "/dashboard/page": "/dashboard",
-  "/details/[id]/page": "/details/[id]",
   "/details/page": "/details",
   "/favicon.ico/route": "/favicon.ico",
   "/login/page": "/login",

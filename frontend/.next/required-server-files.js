@@ -112,6 +112,7 @@ self.__SERVER_FILES_MANIFEST={
     "compiler": {},
     "expireTime": 31536000,
     "staticPageGenerationTimeout": 60,
+    "output": "export",
     "modularizeImports": {
       "@mui/icons-material": {
         "transform": "@mui/icons-material/{{member}}"
@@ -186,7 +187,7 @@ self.__SERVER_FILES_MANIFEST={
       "proxyPrefetch": "flexible",
       "optimisticClientCache": true,
       "manualClientBasePath": false,
-      "cpus": 3,
+      "cpus": 1,
       "memoryBasedWorkersCount": false,
       "imgOptConcurrency": null,
       "imgOptTimeoutInSeconds": 7,
@@ -328,8 +329,8 @@ self.__SERVER_FILES_MANIFEST={
     },
     "distDirRoot": ".next"
   },
-  "appDir": "/Users/jassongomes/Downloads/J-Lautos/frontend",
-  "relativeAppDir": "Downloads/J-Lautos/frontend",
+  "appDir": "/Users/jassongomes/Downloads/nodejs/frontend",
+  "relativeAppDir": "Downloads/nodejs/frontend",
   "files": [
     ".next/routes-manifest.json",
     ".next/server/pages-manifest.json",

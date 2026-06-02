@@ -157,6 +157,8 @@ router.get('/export', authenticateJWT, requireAdmin, async (req: Request, res: R
     if (format === 'excel') {
       await generateExcelReport(res, 'Inventory', headers, rows, 'inventory.xlsx');
     } else {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="inventory.pdf"');
       await generatePDFReport(res, title, headers, rows, 'Inventory overview');
     }
   } catch (error: any) {
