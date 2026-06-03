@@ -33,6 +33,8 @@ app.use(cors({
       // Production frontend
       process.env.FRONTEND_URL || '',
       'https://lightcyan-shark-136321.hostingersite.com',
+      'https://www.jmgsparkweb.com',
+      'https://jmgsparkweb.com',
       // Local development — allow any localhost port
       /^http:\/\/localhost(:\d+)?$/,
       /^http:\/\/127\.0\.0\.1(:\d+)?$/,
