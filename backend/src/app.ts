@@ -133,10 +133,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-const PORT = Number(process.env.PORT) || 5001;
+const PORT = process.env.PORT || 5001;
 
 // Only listen if run directly (not when imported by tests or server.js)
-app.listen(PORT, '0.0.0.0', async () => {
+app.listen(PORT as any, async () => {
   console.log(`[JL Autos ERP] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   // Test database connection on startup
   try {
