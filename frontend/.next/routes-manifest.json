@@ -48,12 +48,6 @@
       "namedRegex": "^/admin(?:/)?$"
     },
     {
-      "page": "/api/revalidate",
-      "regex": "^/api/revalidate(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/api/revalidate(?:/)?$"
-    },
-    {
       "page": "/book-test-drive",
       "regex": "^/book\\-test\\-drive(?:/)?$",
       "routeKeys": {},
