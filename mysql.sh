@@ -8,7 +8,7 @@
 DB_USER="u373012508_jlautos"
 DB_PASS="J210870c"
 DB_NAME="u373012508_JLautos"
-DB_HOST="localhost"
+DB_HOST="127.0.0.1"
 DB_PORT="3306"
 
 if [ -n "$1" ]; then
