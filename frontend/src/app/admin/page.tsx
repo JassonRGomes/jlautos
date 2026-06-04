@@ -35,7 +35,7 @@ import {
 
 const BACKEND_URL =
   (process.env.NEXT_PUBLIC_BACKEND_URL ||
-    (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001')
+    (process.env.NODE_ENV === 'production' ? '' : '')
   ).replace(/\/$/, '');
 
 interface Vehicle {
