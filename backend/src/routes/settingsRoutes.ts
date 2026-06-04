@@ -148,20 +148,63 @@ router.get('/customers', authenticateJWT, requireAdmin, async (_req: Request, re
 // GET /api/settings/export — Produces inventory sheets
 router.get('/export', authenticateJWT, requireAdmin, async (req: Request, res: Response) => {
   const format = req.query.format as string;
+  const type = req.query.type as string;
   try {
-    const vehicles = await prisma.vehicle.findMany();
-    const headers = ['Make', 'Model', 'Year', 'Price', 'Status'];
-    const rows = vehicles.map(v => [v.make, v.model, v.year.toString(), v.price.toString(), v.status]);
-    const title = 'Inventory Report';
+    const dealership = await prisma.dealership.findFirst({ where: { status: 'ACTIVE' } });
+    const logoUrl = dealership?.logoUrl || null;
+
+    let headers: string[] = [];
+    let rows: string[][] = [];
+    let title = '';
+    let summaryText = '';
+    let sheetName = '';
+
+    if (type === 'inventory') {
+      const vehicles = await prisma.vehicle.findMany();
+      headers = ['Make', 'Model', 'Year', 'Price', 'Status'];
+      rows = vehicles.map(v => [v.make, v.model, v.year.toString(), '$' + Number(v.price).toLocaleString(), v.status]);
+      title = 'Showroom Inventory Valuation';
+      sheetName = 'Inventory';
+      summaryText = `Complete overview of all vehicles currently registered in the showroom inventory. Total active units: ${vehicles.length}.`;
+    } else if (type === 'leads') {
+      const users = await prisma.user.findMany({ where: { role: 'CUSTOMER' } });
+      headers = ['Name', 'Email', 'Phone', 'Registration Date'];
+      rows = users.map(u => [u.name, u.email, u.phone || 'N/A', new Date(u.createdAt).toLocaleDateString()]);
+      title = 'Client & Leads Acquisition';
+      sheetName = 'Leads';
+      summaryText = `Detailed list of registered clients and potential leads acquired through the digital showroom. Total leads: ${users.length}.`;
+    } else if (type === 'sales') {
+      const bookings = await prisma.booking.findMany({ include: { vehicle: true, user: true } });
+      headers = ['Reference', 'Customer', 'Vehicle', 'Date', 'Status'];
+      rows = bookings.map(b => [
+        '#' + b.bookingReference,
+        b.user?.name || 'Unknown',
+        b.vehicle ? `${b.vehicle.year} ${b.vehicle.make} ${b.vehicle.model}` : 'Deleted Vehicle',
+        new Date(b.bookingDate).toLocaleDateString(),
+        b.status
+      ]);
+      title = 'Sales & Revenue Ledger';
+      sheetName = 'Sales_Bookings';
+      summaryText = `Comprehensive log of all VIP Test Drives, Reservations, and Completed Sales appointments. Total records: ${bookings.length}.`;
+    } else {
+      // Default fallback
+      const vehicles = await prisma.vehicle.findMany();
+      headers = ['Make', 'Model', 'Year', 'Price', 'Status'];
+      rows = vehicles.map(v => [v.make, v.model, v.year.toString(), '$' + Number(v.price).toLocaleString(), v.status]);
+      title = 'Inventory Report';
+      sheetName = 'Inventory';
+      summaryText = `Complete overview of all vehicles.`;
+    }
 
     if (format === 'excel') {
-      await generateExcelReport(res, 'Inventory', headers, rows, 'inventory.xlsx');
+      await generateExcelReport(res, sheetName, headers, rows, `${type || 'inventory'}_report.xlsx`, logoUrl);
     } else {
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename="inventory.pdf"');
-      await generatePDFReport(res, title, headers, rows, 'Inventory overview');
+      res.setHeader('Content-Disposition', `attachment; filename="${type || 'inventory'}_report.pdf"`);
+      await generatePDFReport(res, title, headers, rows, summaryText, logoUrl);
     }
   } catch (error: any) {
+    console.error('Export error:', error);
     if (!res.headersSent) {
       return res.status(500).json({ success: false, message: 'Export failed.', error: error.message });
     }
