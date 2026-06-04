@@ -952,10 +952,10 @@ export default function AdministrativePanel() {
                       <div className="flex flex-col space-y-1.5">
                         <label className="text-[10px] font-bold uppercase text-text-muted tracking-wider">Valuation price (USD)</label>
                         <input
-                          type="number"
+                          type="text"
                           required
-                          value={formPrice}
-                          onChange={(e) => setFormPrice(Number(e.target.value))}
+                          value={formPrice > 0 ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(formPrice) : ''}
+                          onChange={(e) => setFormPrice(Number(e.target.value.replace(/[^0-9]/g, '')) / 100)}
                           className="bg-background border border-card-border text-foreground px-3 py-2.5 rounded text-sm outline-none focus:ring-1 focus:ring-accent font-bold"
                         />
                       </div>
@@ -1158,9 +1158,9 @@ export default function AdministrativePanel() {
                           <div className="flex flex-col space-y-1">
                             <label className="text-[9px] font-bold uppercase text-text-muted">Minimum Downpayment Target (USD)</label>
                             <input
-                              type="number"
-                              value={formDownpayment}
-                              onChange={(e) => setFormDownpayment(Number(e.target.value))}
+                              type="text"
+                              value={formDownpayment > 0 ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(formDownpayment) : ''}
+                              onChange={(e) => setFormDownpayment(Number(e.target.value.replace(/[^0-9]/g, '')) / 100)}
                               placeholder={`Default: $${(formPrice * 0.15).toLocaleString()}`}
                               className="bg-card border border-card-border p-2 rounded text-xs"
                             />
