@@ -23,7 +23,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 
-const API_URL =
+const API_URL = '';
   process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, '') ||
   'http://localhost:5001';
 
@@ -434,7 +434,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-card-border pb-4">
               <div className="flex items-center gap-2 text-foreground font-bold tracking-wide">
                 <Filter size={18} className="text-accent" />
-                <span>SEARCH CONCIERGE LEDGER</span>
+                <span>SEARCH</span>
               </div>
               <div className="flex items-center gap-3 mt-2 sm:mt-0">
                 {user && (
@@ -520,16 +520,36 @@ export default function Home() {
 
               {/* Body Style Selection */}
               <div className="flex flex-col space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Silhouette / Class</label>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Class</label>
                 <select
                   value={bodyStyleFilter}
                   onChange={(e) => setBodyStyleFilter(e.target.value)}
                   className="bg-card border border-card-border text-foreground px-3.5 py-2.5 rounded-md text-sm font-medium focus:ring-1 focus:ring-accent focus:border-accent outline-none"
                 >
                   <option value="">All Classes</option>
-                  <option value="Coupe">Coupe</option>
-                  <option value="Sedan">Sedan</option>
-                  <option value="SUV">SUV</option>
+                  <option value="Microcar">Microcar</option>
+                  <option value="Subcompact Car">Subcompact Car</option>
+                  <option value="Compact Car">Compact Car</option>
+                  <option value="Mid-size Car">Mid-size Car</option>
+                  <option value="Full-size Car">Full-size Car</option>
+                  <option value="Station Wagon">Station Wagon</option>
+                  <option value="Hatchback">Hatchback</option>
+                  <option value="Convertible">Convertible</option>
+                  <option value="Sports Car">Sports Car</option>
+                  <option value="Supercar">Supercar</option>
+                  <option value="Muscle Car">Muscle Car</option>
+                  <option value="Compact SUV">Compact SUV</option>
+                  <option value="Mid-size SUV">Mid-size SUV</option>
+                  <option value="Full-size SUV">Full-size SUV</option>
+                  <option value="Crossover (CUV)">Crossover (CUV)</option>
+                  <option value="Minivan">Minivan</option>
+                  <option value="Compact Pickup Truck">Compact Pickup Truck</option>
+                  <option value="Mid-size Pickup Truck">Mid-size Pickup Truck</option>
+                  <option value="Full-size Pickup Truck">Full-size Pickup Truck</option>
+                  <option value="Heavy Duty Pickup Truck">Heavy Duty Pickup Truck</option>
+                  <option value="Cargo Van">Cargo Van</option>
+                  <option value="Passenger Van">Passenger Van</option>
+                  <option value="Luxury Vehicle">Luxury Vehicle</option>
                 </select>
               </div>
 

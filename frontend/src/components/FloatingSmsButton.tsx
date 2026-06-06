@@ -25,7 +25,7 @@ const FloatingSmsButton: React.FC = () => {
             : 'opacity-0 translate-y-2 scale-95 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100'
         }`}
       >
-        <p className="text-[10px] font-bold text-accent uppercase tracking-wider mb-0.5">Concierge SMS Desk</p>
+        <p className="text-[10px] font-bold text-accent uppercase tracking-wider mb-0.5">Reservation SMS Desk</p>
         <p className="font-mono text-foreground/90">{displayPhone}</p>
       </div>
 

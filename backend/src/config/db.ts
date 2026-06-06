@@ -12,8 +12,7 @@ if (!databaseUrl || !databaseUrl.startsWith('mysql://')) {
   databaseUrl = 'mysql://u373012508_jlautos:J210870c@127.0.0.1:3306/u373012508_JLautos';
 }
 
-// Force localhost -> 127.0.0.1 to ensure TCP (not Unix socket) connection
-databaseUrl = databaseUrl.replace('@localhost:', '@127.0.0.1:');
+// Removed localhost -> 127.0.0.1 replacement for Hostinger compatibility
 
 const prisma = new PrismaClient({
   datasources: {

@@ -40,7 +40,7 @@ export default function Register() {
         loginUser(res.data.user);
         window.location.href = '/dashboard';
       } else {
-        setError('Registration failed: Invalid response from concierge.');
+        setError('Registration failed: Invalid response from reservation.');
       }
     } catch (err: any) {
       setError(

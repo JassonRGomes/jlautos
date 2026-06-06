@@ -45,7 +45,7 @@ export default function Login() {
     } catch (err: any) {
       setError(
         err.response?.data?.message || 
-        'Unable to connect to the concierge desk. Please check your credentials.'
+        'Unable to connect. Please check your credentials.'
       );
     } finally {
       setLoading(false);

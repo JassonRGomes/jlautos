@@ -4,6 +4,7 @@ import {
   getMyBookings,
   updateBooking,
   deleteBooking,
+  acceptBooking,
 } from '../controllers/testDriveBookingController';
 import { authenticateJWT } from '../middlewares/auth';
 
@@ -15,6 +16,7 @@ router.use(authenticateJWT);
 router.post('/', createBooking);
 router.get('/my', getMyBookings);
 router.put('/:id', updateBooking);
+router.put('/:id/accept', acceptBooking);
 router.delete('/:id', deleteBooking);
 
 export default router;

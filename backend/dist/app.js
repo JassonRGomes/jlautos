@@ -1,27 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -35,6 +12,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const path_1 = __importDefault(require("path"));
 // Route imports
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
+const db_1 = __importDefault(require("./config/db"));
 const vehicleRoutes_1 = __importDefault(require("./routes/vehicleRoutes"));
 const bookingRoutes_1 = __importDefault(require("./routes/bookingRoutes"));
 const dealerBookingRoutes_1 = __importDefault(require("./routes/dealerBookingRoutes"));
@@ -89,8 +67,7 @@ app.use(express_1.default.static(path_1.default.join(__dirname, '../public'), { 
 // Health Check with database connectivity test
 app.get('/health', async (_req, res) => {
     try {
-        const { default: prisma } = await Promise.resolve().then(() => __importStar(require('./config/db')));
-        await prisma.$queryRaw `SELECT 1`;
+        await db_1.default.$queryRaw `SELECT 1`;
         res.status(200).json({ status: 'OK', database: 'Connected' });
     }
     catch (error) {
@@ -152,8 +129,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.log(`[JL Autos ERP] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
     // Test database connection on startup
     try {
-        const { default: prisma } = await Promise.resolve().then(() => __importStar(require('./config/db')));
-        await prisma.$queryRaw `SELECT 1`;
+        await db_1.default.$queryRaw `SELECT 1`;
         console.log('[DB] ✅ Database connection established successfully.');
     }
     catch (err) {

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "J&L Autos | Premium Luxury Showroom & Car Dealership",
   description: "Browse J&L Autos' curated collection of premium luxury motorcars. Private test drives and VIP bookings are available online.",
   keywords: "Porsche, Aston Martin, Audi RS, Luxury Car Dealership, Beverly Hills Car Dealership, Digital Showroom",
-  authors: [{ name: "J&L Autos Concierge Team" }],
+  authors: [{ name: "J&L Autos Reservation Team" }],
 };
 
 export const viewport: Viewport = {

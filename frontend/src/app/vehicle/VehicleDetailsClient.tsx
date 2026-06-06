@@ -266,7 +266,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
       setBookingSuccess(
         res.data.message ||
-        (res.data.data ? 'Concierge appointment booked. You will be contacted for confirmation.' : 'Concierge schedules booked.')
+        (res.data.data ? 'Reservation appointment booked. You will be contacted for confirmation.' : 'Reservation schedules booked.')
       );
       // Reset form
       setBookingDate('');
@@ -333,7 +333,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
   if (vehicle.isFinanceWarrantyActive) {
     if (vehicle.financeData) {
       try {
-        parsedFinance = JSON.parse(vehicle.financeData);
+        parsedFinance = typeof vehicle.financeData === 'string' ? JSON.parse(vehicle.financeData) : vehicle.financeData;
       } catch (e) {
         parsedFinance = { minDownpayment: vehicle.price * 0.15, aprRate: 4.9, durationMonths: 60 };
       }
@@ -343,7 +343,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
     if (vehicle.warrantyData) {
       try {
-        parsedWarranty = JSON.parse(vehicle.warrantyData);
+        parsedWarranty = typeof vehicle.warrantyData === 'string' ? JSON.parse(vehicle.warrantyData) : vehicle.warrantyData;
       } catch (e) {
         parsedWarranty = { durationYears: 3, scopeCoverage: 'Full Bumper-to-Bumper Powertrain warranty' };
       }
@@ -574,23 +574,23 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
                   <div className="bg-background border border-card-border p-4 rounded space-y-2 text-sm text-text-muted">
                     <div className="flex justify-between">
                       <span>Minimum Downpayment Target</span>
-                      <strong className="text-foreground">${Number(parsedFinance.minDownpayment || (vehicle.price * 0.15)).toLocaleString()}</strong>
+                      <strong className="text-foreground">${Number(parsedFinance.minDownpayment !== null && parsedFinance.minDownpayment !== undefined ? parsedFinance.minDownpayment : 0).toLocaleString()}</strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Estimated Annual APR Rates</span>
-                      <strong className="text-foreground">{parsedFinance.aprRate || 4.9}%</strong>
+                      <strong className="text-foreground">{parsedFinance.aprRate !== null && parsedFinance.aprRate !== undefined ? parsedFinance.aprRate : 0}%</strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Amortization Term Limit</span>
-                      <strong className="text-foreground">{parsedFinance.durationMonths || 60} Months</strong>
+                      <strong className="text-foreground">{parsedFinance.durationMonths !== null && parsedFinance.durationMonths !== undefined ? parsedFinance.durationMonths : 0} Months</strong>
                     </div>
                     <div className="pt-2 border-t border-card-border/50 flex justify-between text-xs font-semibold text-foreground">
                       <span>Est. Monthly Expense</span>
                       <span>
                         ${Math.round(
-                          ((vehicle.price - (parsedFinance.minDownpayment || vehicle.price * 0.15)) *
-                            (1 + (parsedFinance.aprRate || 4.9) / 100)) /
-                            (parsedFinance.durationMonths || 60)
+                          ((vehicle.price - (parsedFinance.minDownpayment !== null && parsedFinance.minDownpayment !== undefined ? parsedFinance.minDownpayment : 0)) *
+                            (1 + (parsedFinance.aprRate !== null && parsedFinance.aprRate !== undefined ? parsedFinance.aprRate : 0) / 100)) /
+                            (parsedFinance.durationMonths !== null && parsedFinance.durationMonths !== undefined && parsedFinance.durationMonths > 0 ? parsedFinance.durationMonths : 1)
                         ).toLocaleString()}/mo
                       </span>
                     </div>
@@ -601,12 +601,12 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
                 <div className="space-y-3">
                   <div className="flex items-center gap-1.5">
                     <ShieldCheck size={16} className="text-emerald-500" />
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">Concierge Warranty Coverage</h4>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">Reservation Warranty Coverage</h4>
                   </div>
                   <div className="bg-background border border-card-border p-4 rounded space-y-2 text-sm text-text-muted">
                     <div className="flex justify-between">
                       <span>Bespoke Coverage Duration</span>
-                      <strong className="text-foreground">{parsedWarranty.durationYears || 3} Years</strong>
+                      <strong className="text-foreground">{parsedWarranty.durationYears !== null && parsedWarranty.durationYears !== undefined ? parsedWarranty.durationYears : 0} Years</strong>
                     </div>
                     <div className="space-y-1">
                       <span className="text-xs block text-zinc-500">Coverage Mechanics:</span>
@@ -621,7 +621,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
               <div className="flex gap-2 items-start bg-background p-3.5 rounded border border-card-border text-[11px] text-text-muted leading-relaxed">
                 <Info size={16} className="text-accent flex-shrink-0 mt-0.5" />
                 <p>
-                  Financing interest estimates are provided solely as concierge pre-evaluations. Actual rates are calculated upon custom credit profiles in cooperation with our automotive private banking partners.
+                  Financing interest estimates are provided solely as reservation pre-evaluations. Actual rates are calculated upon custom credit profiles in cooperation with our automotive private banking partners.
                 </p>
               </div>
             </div>
@@ -629,12 +629,12 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
         </div>
 
-        {/* Right Side Column: Sticky booking concierge widget */}
+        {/* Right Side Column: Sticky booking reservation widget */}
         <div className="lg:col-span-1">
           <div className="sticky top-28 bg-card border border-card-border p-6 rounded-xl shadow-lg space-y-6">
             
             <div className="border-b border-card-border pb-3">
-              <span className="text-[9px] font-extrabold text-accent uppercase tracking-widest">SHOWROOM CONCIERGE</span>
+              <span className="text-[9px] font-extrabold text-accent uppercase tracking-widest">SHOWROOM RESERVATION</span>
               <h3 className="text-xl font-bold uppercase tracking-tight text-foreground mt-0.5">
                 VIP Test Drive
               </h3>
@@ -666,7 +666,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
 
             <div className="pt-5 mt-2 border-t border-white/10 text-center">
               <span className="text-[9px] text-text-muted/60 uppercase tracking-[0.2em] font-bold">
-                J&L Autos Concierge Desk: <br className="hidden md:block"/>{settings?.phone || '+1 (214) 608-0670'}
+                Contact us: <br className="hidden md:block"/>{settings?.phone || '+1 (214) 608-0670'}
               </span>
             </div>
 
@@ -732,7 +732,7 @@ export default function VehicleDetailsPage({ vehicleId }: { vehicleId?: string }
             
             <div className="flex justify-between items-center border-b border-card-border pb-3 mb-4">
               <div className="flex flex-col">
-                <span className="text-[9px] font-bold text-accent uppercase tracking-widest">Concierge Broadcasting</span>
+                <span className="text-[9px] font-bold text-accent uppercase tracking-widest">Reservation Broadcasting</span>
                 <h3 className="font-extrabold text-base uppercase tracking-tight text-foreground">
                   Share {vehicle.make} {vehicle.model}
                 </h3>

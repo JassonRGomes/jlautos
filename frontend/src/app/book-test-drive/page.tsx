@@ -199,7 +199,7 @@ function BookTestDriveInner() {
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="text-center space-y-4">
           <RefreshCw className="animate-spin text-accent mx-auto" size={42} />
-          <h2 className="text-sm font-bold uppercase tracking-wider text-text-muted">Preparing Concierge desk...</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-text-muted">Preparing...</h2>
         </div>
       </div>
     );
@@ -284,7 +284,7 @@ function BookTestDriveInner() {
               <div className="bg-card border border-card-border rounded-xl p-6 sm:p-8 shadow-sm">
                 <form onSubmit={handleScheduleTestDrive} className="space-y-6">
                   <h3 className="text-sm font-extrabold text-foreground uppercase tracking-wider border-b border-card-border pb-3">
-                    Concierge Reservation Details
+                    Reservations Details
                   </h3>
 
                   {/* Date & Time slots */}
@@ -303,7 +303,7 @@ function BookTestDriveInner() {
                           value={bookingDate}
                           onChange={(e) => setBookingDate(e.target.value)}
                           min={minDate}
-                          className="w-full bg-black/40 border border-white/10 text-foreground pl-10 pr-3.5 py-3 rounded-xl text-sm outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all shadow-inner"
+                          className="w-full bg-white border border-gray-200 text-black pl-10 pr-3.5 py-3 rounded-xl text-sm outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all shadow-inner"
                         />
                       </div>
                     </div>
@@ -323,7 +323,7 @@ function BookTestDriveInner() {
                               className={`py-2 px-1 text-center text-xs font-bold rounded-lg border transition-all ${
                                 active
                                   ? 'bg-accent border-accent text-white shadow-md'
-                                  : 'bg-black/40 border-white/10 hover:border-accent/40 text-foreground'
+                                  : 'bg-white border-gray-200 hover:border-accent/40 text-black'
                               }`}
                             >
                               {slot}
@@ -351,7 +351,7 @@ function BookTestDriveInner() {
                             placeholder="e.g. John Doe"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
-                            className="w-full bg-black/30 border border-white/5 text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-accent"
+                            className="w-full bg-white border border-gray-200 text-black pl-9 pr-3 py-2.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-accent"
                           />
                         </div>
                       </div>
@@ -366,7 +366,7 @@ function BookTestDriveInner() {
                             placeholder="e.g. name@domain.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-black/30 border border-white/5 text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-accent"
+                            className="w-full bg-white border border-gray-200 text-black pl-9 pr-3 py-2.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-accent"
                           />
                         </div>
                       </div>
@@ -383,7 +383,7 @@ function BookTestDriveInner() {
                             placeholder="e.g. +1 (555) 019-2834"
                             value={mobileNumber}
                             onChange={(e) => setMobileNumber(e.target.value)}
-                            className="w-full bg-black/30 border border-white/5 text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-accent"
+                            className="w-full bg-white border border-gray-200 text-black pl-9 pr-3 py-2.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-accent"
                           />
                         </div>
                       </div>
@@ -397,7 +397,7 @@ function BookTestDriveInner() {
                             placeholder="e.g. DL-293847-NJ"
                             value={drivingLicense}
                             onChange={(e) => setDrivingLicense(e.target.value)}
-                            className="w-full bg-black/30 border border-white/5 text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-accent"
+                            className="w-full bg-white border border-gray-200 text-black pl-9 pr-3 py-2.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-accent"
                           />
                         </div>
                       </div>
@@ -416,7 +416,7 @@ function BookTestDriveInner() {
                         placeholder="Specify transmission preferences, special details, or requirements..."
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        className="w-full bg-black/30 border border-white/5 text-foreground pl-9 pr-3 py-2.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-accent resize-none"
+                        className="w-full bg-white border border-gray-200 text-black pl-9 pr-3 py-2.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-accent resize-none"
                       />
                     </div>
                   </div>

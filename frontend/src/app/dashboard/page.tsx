@@ -98,6 +98,7 @@ function CustomerDashboardInner() {
   const [favorites, setFavorites] = useState<Vehicle[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookingStatusFilter, setBookingStatusFilter] = useState('');
 
 
   // View / Edit Modal states
@@ -160,7 +161,7 @@ function CustomerDashboardInner() {
         });
         // For customers, ensure only own bookings are displayed
         if ((user?.role || '').toUpperCase() !== 'ADMIN') {
-          parsed = parsed.filter((b) => b.user && b.user.id === user.id);
+          parsed = parsed.filter((b: any) => String(b.customerId) === String(user.id));
         }
         setBookings(parsed);
       }
@@ -169,7 +170,7 @@ function CustomerDashboardInner() {
 
     } catch (err: any) {
       console.error('Failed to load dashboard statistics:', err);
-      setErrorMsg('Failed to sync latest concierge logs.');
+      setErrorMsg('Failed to sync latest reservation logs.');
     } finally {
       setLoadingData(false);
     }
@@ -229,6 +230,93 @@ function CustomerDashboardInner() {
       setFavorites((prev) => prev.filter((v) => v.id !== vehicleId));
     } catch (err) {
       console.error('Failed to untag favorite:', err);
+    }
+  };
+
+  const startEditBooking = (booking: any, e: any) => {
+    e.preventDefault();
+    setSelectedBookingForEdit(booking);
+    if (booking.bookingDate) {
+      setEditDate(new Date(booking.bookingDate).toISOString().split('T')[0]);
+    }
+    setEditTimeSlot(booking.bookingTime || '');
+    setEditNotes(booking.notes || '');
+    setEditError('');
+  };
+
+  const handleSaveEditBooking = async (e: any) => {
+    e.preventDefault();
+    if (!selectedBookingForEdit) return;
+    setEditError('');
+    setEditLoading(true);
+    try {
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/bookings/${selectedBookingForEdit.id}`, {
+        bookingDate: editDate,
+        bookingTime: editTimeSlot,
+        notes: editNotes
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Update local state
+      setBookings((prev) => prev.map((b) => {
+        if (b.id === selectedBookingForEdit.id) {
+          // Update local status to reflect customer modification
+          return { ...b, bookingDate: editDate, bookingTime: editTimeSlot, notes: editNotes, status: 'Modified by Customer' };
+        }
+        return b;
+      }));
+      setSelectedBookingForEdit(null);
+      alert('Booking updated successfully.');
+    } catch (err: any) {
+      console.error('Failed to update booking:', err);
+      setEditError(err.response?.data?.message || 'Failed to update booking.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleAcceptBookingCustomer = async (bookingId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm('Accept the proposed time? You will receive a calendar invite for this slot.')) return;
+    try {
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/bookings/${bookingId}/accept`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setBookings((prev) => prev.map((b) => {
+        if (b.id === bookingId) {
+          return { ...b, status: 'Approved' };
+        }
+        return b;
+      }));
+      alert('Booking accepted! Calendar invite has been sent to your email.');
+    } catch (err: any) {
+      console.error('Failed to accept booking:', err);
+      alert(err.response?.data?.message || 'Failed to accept the booking.');
+    }
+  };
+
+  const handleCancelBookingCustomer = async (bookingId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    try {
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.delete(`${BACKEND_URL}/api/bookings/${bookingId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setBookings((prev) => prev.map((b) => {
+        if (b.id === bookingId) {
+          return { ...b, status: 'Cancelled' };
+        }
+        return b;
+      }));
+      alert('Booking has been cancelled.');
+    } catch (err: any) {
+      console.error('Failed to cancel booking:', err);
+      alert(err.response?.data?.message || 'Failed to cancel the booking.');
     }
   };
 
@@ -293,7 +381,7 @@ function CustomerDashboardInner() {
                 </span>
               </div>
               <p className="text-xs text-text-muted mt-1 uppercase font-semibold tracking-wider">
-                Showroom Concierge Registry: {user?.email} &bull; Registry Role: {user?.role}
+                Showroom Reservation Registry: {user?.email} &bull; Registry Role: {user?.role}
               </p>
             </div>
           </div>
@@ -431,7 +519,7 @@ function CustomerDashboardInner() {
                                 </span>
                               </div>
                               <p className="text-[10px] text-text-muted uppercase font-semibold">
-                                Gearbox: {vehicle.transmission} &bull; Silhouette: {vehicle.bodyStyle}
+                                Gearbox: {vehicle.transmission} &bull; Class: {vehicle.bodyStyle}
                               </p>
                             </div>
 
@@ -537,8 +625,39 @@ function CustomerDashboardInner() {
 
             {/* TAB C: BOOKINGS TIMELINE (Redesigned for Auto-Sync) */}
             {activeTab === 'bookings' && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {bookings.length > 0 ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+                
+                {/* Status Filter Buttons */}
+                <div className="flex flex-wrap gap-2 py-1">
+                  {[
+                    { label: 'All Requests', value: '' },
+                    { label: 'Pending Approval', value: 'Pending Approval' },
+                    { label: 'Approved', value: 'Approved' },
+                    { label: 'Modified', value: 'Modified' },
+                    { label: 'Cancelled', value: 'Cancelled' },
+                    { label: 'Completed', value: 'Completed' },
+                    { label: 'Rejected', value: 'Rejected' },
+                  ].map((btn) => (
+                    <button
+                      key={btn.label}
+                      onClick={() => setBookingStatusFilter(btn.value)}
+                      className={`px-3 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all cursor-pointer border ${
+                        bookingStatusFilter === btn.value
+                          ? 'bg-accent border-accent text-white shadow-md'
+                          : 'bg-black/40 border-white/10 text-text-muted hover:border-white/30 hover:text-white'
+                      }`}
+                    >
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
+
+                {(() => {
+                  const filteredBookings = bookingStatusFilter
+                    ? bookings.filter((b) => bookingStatusFilter === 'Modified' ? b.status.startsWith('Modified') : b.status === bookingStatusFilter)
+                    : bookings;
+
+                  return filteredBookings.length > 0 ? (
                   <div className="overflow-x-auto rounded-xl border border-card-border bg-card">
                     <table className="min-w-full divide-y divide-card-border text-left text-xs text-foreground">
                       <thead className="bg-black/20 text-[10px] font-extrabold uppercase tracking-wider text-text-muted">
@@ -553,9 +672,10 @@ function CustomerDashboardInner() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-card-border/60">
-                        {bookings.map((booking) => {
+                        {filteredBookings.map((booking) => {
                           const canEdit = ['Pending Approval', 'Approved'].includes(booking.status);
-                          const canCancel = booking.status !== 'Cancelled' && booking.status !== 'Rejected' && booking.status !== 'Completed';
+                          const canCancel = !['Completed', 'Cancelled', 'Rejected'].includes(booking.status);
+                          const canApprove = ['Modified by Dealer'].includes(booking.status);
                           
                           return (
                             <tr key={booking.id} className="hover:bg-white/5 transition-colors">
@@ -580,7 +700,7 @@ function CustomerDashboardInner() {
                                 <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded border ${
                                   booking.status === 'Approved' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
                                   booking.status === 'Pending Approval' ? 'bg-blue-500/10 border-blue-500/20 text-blue-500' :
-                                  booking.status === 'Modified by Dealer' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
+                                  booking.status.startsWith('Modified') ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
                                   booking.status === 'Cancelled' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
                                   booking.status === 'Rejected' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
                                   'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'
@@ -610,9 +730,18 @@ function CustomerDashboardInner() {
                                   </button>
                                 )}
 
+                                {canApprove && (
+                                  <button
+                                    onClick={(e) => handleAcceptBookingCustomer(booking.id, e)}
+                                    className="bg-[#0e9f6e] hover:bg-[#057a55] text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-colors cursor-pointer"
+                                  >
+                                    Approve
+                                  </button>
+                                )}
+
                                 {canCancel && (
                                   <button
-                                    onClick={(e) => handleDeleteBooking(booking.id, e)}
+                                    onClick={(e) => handleCancelBookingCustomer(booking.id, e)}
                                     className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-colors cursor-pointer"
                                   >
                                     Cancel
@@ -630,10 +759,19 @@ function CustomerDashboardInner() {
                     <Calendar size={40} className="mx-auto text-text-muted mb-4 opacity-40" />
                     <h3 className="font-bold uppercase tracking-wider text-foreground text-sm">No Appointments</h3>
                     <p className="text-xs text-text-muted max-w-xs mx-auto mt-1 leading-relaxed">
-                      Schedule a private showroom viewing or VIP test drive session directly on our active dealership floor.
+                      {bookingStatusFilter ? `You have no test drives with status: ${bookingStatusFilter}.` : 'Schedule a private showroom viewing or VIP test drive session directly on our active dealership floor.'}
                     </p>
+                    {!bookingStatusFilter && (
+                      <Link
+                        href="/"
+                        className="inline-block mt-4 bg-accent hover:bg-accent-hover text-white px-6 py-2 rounded text-xs font-bold uppercase tracking-widest transition-colors"
+                      >
+                        Browse Showroom
+                      </Link>
+                    )}
                   </div>
-                )}
+                );
+                })()}
               </div>
             )}
 

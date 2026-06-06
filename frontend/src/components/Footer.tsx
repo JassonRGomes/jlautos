@@ -44,7 +44,7 @@ const Footer: React.FC = () => {
 
           {/* Section 2: Contact Info */}
           <div className="space-y-4">
-            <h4 className="font-semibold text-sm uppercase tracking-widest text-accent">Concierge Desk</h4>
+            <h4 className="font-semibold text-sm uppercase tracking-widest text-accent">Contact us</h4>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin size={16} className="text-text-muted flex-shrink-0 mt-0.5" />

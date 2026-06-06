@@ -8,6 +8,7 @@ import path from 'path';
 
 // Route imports
 import authRoutes from './routes/authRoutes';
+import prisma from './config/db';
 import vehicleRoutes from './routes/vehicleRoutes';
 import bookingRoutes from './routes/bookingRoutes';
 import dealerBookingRoutes from './routes/dealerBookingRoutes';
@@ -70,7 +71,6 @@ app.use(express.static(path.join(__dirname, '../public'), { extensions: ['html']
 // Health Check with database connectivity test
 app.get('/health', async (_req, res) => {
   try {
-    const { default: prisma } = await import('./config/db');
     await prisma.$queryRaw`SELECT 1`;
     res.status(200).json({ status: 'OK', database: 'Connected' });
   } catch (error) {
@@ -140,7 +140,6 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`[JL Autos ERP] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   // Test database connection on startup
   try {
-    const { default: prisma } = await import('./config/db');
     await prisma.$queryRaw`SELECT 1`;
     console.log('[DB] ✅ Database connection established successfully.');
   } catch (err: any) {

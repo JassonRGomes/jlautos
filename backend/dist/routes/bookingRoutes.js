@@ -9,6 +9,7 @@ router.use(auth_1.authenticateJWT);
 router.post('/', testDriveBookingController_1.createBooking);
 router.get('/my', testDriveBookingController_1.getMyBookings);
 router.put('/:id', testDriveBookingController_1.updateBooking);
+router.put('/:id/accept', testDriveBookingController_1.acceptBooking);
 router.delete('/:id', testDriveBookingController_1.deleteBooking);
 exports.default = router;
 //# sourceMappingURL=bookingRoutes.js.map

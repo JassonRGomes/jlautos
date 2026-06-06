@@ -308,8 +308,8 @@ export const updateBooking = async (req: AuthenticatedRequest, res: Response) =>
       notes = `[Driving License: ${drivingLicenseNumber}] ${notes}`.trim();
     }
 
-    // If an approved booking is modified, change status to "Pending Approval" for dealer review
-    const newStatus = booking.status === 'Approved' ? 'Pending Approval' : booking.status;
+    // Change status to "Modified by Customer" to alert dealer of changes
+    const newStatus = 'Modified by Customer';
 
     const updated = await prisma.testDriveBooking.update({
       where: { id },
@@ -439,7 +439,11 @@ export const getDealerBookings = async (req: AuthenticatedRequest, res: Response
   const where: any = { deletedAt: null };
   
   if (status) {
-    where.status = status;
+    if (status === 'Modified') {
+      where.status = { startsWith: 'Modified' };
+    } else {
+      where.status = status;
+    }
   }
 
   if (search) {
@@ -578,6 +582,98 @@ export const approveBooking = async (req: AuthenticatedRequest, res: Response) =
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Failed to approve booking.', error: error.message });
+  }
+};
+
+/**
+ * PUT /api/bookings/:id/accept - Customer accepts a dealer-modified booking, triggering approval emails & calendar invites
+ */
+export const acceptBooking = async (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const user = req.user!;
+
+  try {
+    const booking = await prisma.testDriveBooking.findFirst({
+      where: { id, customerId: user.id, deletedAt: null },
+      include: { vehicle: true, customer: true },
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found.' });
+    }
+
+    if (booking.status !== 'Modified by Dealer') {
+      return res.status(400).json({ success: false, message: 'Only bookings modified by the dealer can be accepted.' });
+    }
+
+    const settings = await prisma.dealership.findFirst();
+    const address = settings?.address || '100 Premium Way, Suite 400, Beverly Hills, CA 90210';
+    const contactPhone = settings?.phone || '+1 (214) 608-0670';
+    const dealershipName = settings?.name || 'J&L Autos';
+
+    const calParams = {
+      bookingId: booking.id,
+      vehicleName: `${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}`,
+      dealershipName,
+      customerName: booking.customer.name,
+      date: booking.bookingDate,
+      time: booking.bookingTime,
+      address,
+      contactPhone,
+    };
+
+    const googleCalendarLink = generateGoogleCalendarLink(calParams);
+    const icsContent = generateICSContent(calParams);
+
+    const updated = await prisma.testDriveBooking.update({
+      where: { id },
+      data: { status: 'Approved' },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        action: 'ACCEPT_TEST_DRIVE_BOOKING_CUSTOMER',
+        entityType: 'TestDriveBooking',
+        entityId: id,
+        performedBy: user.id,
+      },
+    });
+
+    const mailData = {
+      id: booking.id,
+      bookingReference: booking.bookingReference,
+      customerName: booking.customer.name,
+      customerEmail: booking.customer.email,
+      customerPhone: booking.customer.phone || undefined,
+      vehicleDetails: {
+        id: booking.vehicle.id,
+        make: booking.vehicle.make,
+        model: booking.vehicle.model,
+        year: booking.vehicle.year,
+        price: Number(booking.vehicle.price),
+        transmission: booking.vehicle.transmission || '',
+        color: booking.vehicle.color,
+      },
+      bookingDate: booking.bookingDate,
+      bookingTime: booking.bookingTime,
+      dealerNotes: booking.dealerNotes || undefined,
+      googleCalendarLink,
+      icsContent,
+    };
+
+    await sendTestDriveApprovedEmail(mailData);
+    if (booking.customer.phone) {
+      await sendTestDriveApprovedSMS(booking.bookingReference, booking.customer.phone);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Booking accepted and approved. Calendar invite dispatched.',
+      data: updated,
+      googleCalendarLink,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to accept booking.', error: error.message });
   }
 };
 

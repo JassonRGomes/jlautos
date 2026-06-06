@@ -105,6 +105,7 @@ export default function AdministrativePanel() {
   const [bookingActionLoading, setBookingActionLoading] = useState<Record<string, boolean>>({});
   const [cancelModal, setCancelModal] = useState<{ open: boolean; bookingId: string; customerName: string } | null>(null);
   const [rejectModal, setRejectModal] = useState<{ open: boolean; bookingId: string; customerName: string } | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; bookingId: string; customerName: string } | null>(null);
   const [modifyModal, setModifyModal] = useState<{ open: boolean; booking: any } | null>(null);
   const [rejectionReasonText, setRejectionReasonText] = useState('');
   const [cancellationReasonText, setCancellationReasonText] = useState('');
@@ -133,25 +134,25 @@ export default function AdministrativePanel() {
   // Inventory CMS Form states
   const [formMake, setFormMake] = useState('');
   const [formModel, setFormModel] = useState('');
-  const [formYear, setFormYear] = useState(2026);
+  const [formYear, setFormYear] = useState<number | ''>('');
   const [formColor, setFormColor] = useState('');
-  const [formMileage, setFormMileage] = useState(0);
-  const [formPrice, setFormPrice] = useState(0);
-  const [formTransmission, setFormTransmission] = useState('Automatic');
+  const [formMileage, setFormMileage] = useState<number | ''>('');
+  const [formPrice, setFormPrice] = useState<number | ''>('');
+  const [formTransmission, setFormTransmission] = useState('');
   const [formEngine, setFormEngine] = useState('');
-  const [formFuelType, setFormFuelType] = useState('Gasoline');
-  const [formBodyStyle, setFormBodyStyle] = useState('Coupe');
-  const [formSeats, setFormSeats] = useState(2);
-  const [formDoors, setFormDoors] = useState(2);
+  const [formFuelType, setFormFuelType] = useState('');
+  const [formBodyStyle, setFormBodyStyle] = useState('');
+  const [formSeats, setFormSeats] = useState<number | ''>('');
+  const [formDoors, setFormDoors] = useState<number | ''>('');
   const [formDescription, setFormDescription] = useState('');
-  const [formStatus, setFormStatus] = useState<'ON_SALE' | 'RESERVED' | 'SOLD'>('ON_SALE');
+  const [formStatus, setFormStatus] = useState<'ON_SALE' | 'RESERVED' | 'SOLD' | ''>('');
   
   // Finance / Warranty database toggles
   const [formFinanceActive, setFormFinanceActive] = useState(false);
-  const [formDownpayment, setFormDownpayment] = useState(0);
-  const [formApr, setFormApr] = useState(4.9);
-  const [formTermMonths, setFormTermMonths] = useState(60);
-  const [formWarrantyYears, setFormWarrantyYears] = useState(3);
+  const [formDownpayment, setFormDownpayment] = useState<number | ''>('');
+  const [formApr, setFormApr] = useState<number | ''>('');
+  const [formTermMonths, setFormTermMonths] = useState<number | ''>('');
+  const [formWarrantyYears, setFormWarrantyYears] = useState<number | ''>('');
   const [formWarrantyScope, setFormWarrantyScope] = useState('');
 
   // Multi-image upload states
@@ -200,6 +201,120 @@ export default function AdministrativePanel() {
   }, [user, loadingAuth]);
 
   // 2. Sync all admin datastores — each source is independent so one failure won't block others
+  // Mock missing functions to fix TypeScript build errors
+  const handleCompleteBooking = async (id: string) => {
+    try {
+      setBookingActionLoading(prev => ({ ...prev, [id]: true }));
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/dealer/bookings/${id}/complete`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      syncLedgers();
+    } catch (err: any) {
+      console.error('Complete error:', err);
+      setErrorMsg(err.response?.data?.message || 'Failed to complete booking');
+    } finally {
+      setBookingActionLoading(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleSoftDeleteBookingSubmit = async (e: any) => {
+    e.preventDefault();
+    if (!deleteModal) return;
+    const id = deleteModal.bookingId;
+    try {
+      setBookingActionLoading(prev => ({ ...prev, [id]: true }));
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.delete(`${BACKEND_URL}/api/dealer/bookings/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDeleteModal(null);
+      syncLedgers();
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      setErrorMsg(err.response?.data?.message || 'Failed to delete booking');
+    } finally {
+      setBookingActionLoading(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleModifyBookingSubmit = async (e: any) => {
+    e.preventDefault();
+    if (!modifyModal) return;
+    const id = modifyModal.booking.id;
+    try {
+      setBookingActionLoading(prev => ({ ...prev, [id]: true }));
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/dealer/bookings/${id}/modify`, {
+        bookingDate: modifyDate,
+        bookingTime: modifyTimeSlot,
+        vehicleId: modifyVehicleId,
+        dealerNotes: modifyNotes
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setModifyModal(null);
+      syncLedgers();
+    } catch (err: any) {
+      console.error('Modify error:', err);
+      setErrorMsg(err.response?.data?.message || 'Failed to modify booking');
+    } finally {
+      setBookingActionLoading(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleRejectBookingSubmit = async (e: any) => {
+    e.preventDefault();
+    if (!rejectModal) return;
+    const id = rejectModal.bookingId;
+    try {
+      setBookingActionLoading(prev => ({ ...prev, [id]: true }));
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/dealer/bookings/${id}/reject`, {
+        rejectionReason: rejectionReasonText
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRejectModal(null);
+      setRejectionReasonText('');
+      syncLedgers();
+    } catch (err: any) {
+      console.error('Reject error:', err);
+      setErrorMsg(err.response?.data?.message || 'Failed to reject booking');
+    } finally {
+      setBookingActionLoading(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleCancelBookingSubmit = async (e: any) => {
+    e.preventDefault();
+    if (!cancelModal) return;
+    const id = cancelModal.bookingId;
+    try {
+      setBookingActionLoading(prev => ({ ...prev, [id]: true }));
+      const token = localStorage.getItem('jl_auth_token');
+      await axios.put(`${BACKEND_URL}/api/dealer/bookings/${id}/cancel`, {
+        cancellationReason: cancellationReasonText
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCancelModal(null);
+      setCancellationReasonText('');
+      syncLedgers();
+    } catch (err: any) {
+      console.error('Cancel error:', err);
+      setErrorMsg(err.response?.data?.message || 'Failed to cancel booking');
+    } finally {
+      setBookingActionLoading(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const fetchDashboardStats = async () => {
+    setLoadingData(true);
+    let syncErrors: string[] = [];
+    const ts = Date.now();
+  };
+
   async function syncLedgers() {
     setLoadingData(true);
     setErrorMsg('');
@@ -235,7 +350,7 @@ export default function AdministrativePanel() {
     try { await axios.get(`${BACKEND_URL}/api/settings/fix-bookings`); } catch { /* silent */ }
     try {
       const bookRes = await axios.get(
-        `${BACKEND_URL}/api/dealer/bookings?status=${bookingStatusFilter}&search=${bookingSearchQuery}&_t=${ts}`,
+        `${BACKEND_URL}/api/dealer/bookings?limit=1000&_t=${ts}`,
         { headers: authHeader }
       );
       const bookingsRaw = bookRes.data?.data;
@@ -401,14 +516,14 @@ export default function AdministrativePanel() {
 
     // Assemble finance warranty parameters as JSON strings if active
     const financeObject = formFinanceActive ? JSON.stringify({
-      minDownpayment: Number(formDownpayment) || Number(formPrice) * 0.15,
-      aprRate: Number(formApr) || 4.9,
-      durationMonths: Number(formTermMonths) || 60
+      minDownpayment: formDownpayment !== '' ? Number(formDownpayment) : null,
+      aprRate: formApr !== '' ? Number(formApr) : null,
+      durationMonths: formTermMonths !== '' ? Number(formTermMonths) : null
     }) : null;
 
     const warrantyObject = formFinanceActive ? JSON.stringify({
-      durationYears: Number(formWarrantyYears) || 3,
-      scopeCoverage: formWarrantyScope || 'Full Powertrain Concierge Warranty'
+      durationYears: formWarrantyYears !== '' ? Number(formWarrantyYears) : null,
+      scopeCoverage: formWarrantyScope !== '' ? formWarrantyScope : null
     }) : null;
 
     const payload = {
@@ -486,24 +601,24 @@ export default function AdministrativePanel() {
     if (vehicle.isFinanceWarrantyActive) {
       if (vehicle.financeData) {
         try {
-          const fin = JSON.parse(vehicle.financeData);
-          setFormDownpayment(fin.minDownpayment || 0);
-          setFormApr(fin.aprRate || 4.9);
-          setFormTermMonths(fin.durationMonths || 60);
-        } catch (e) {}
+          const fin = typeof vehicle.financeData === 'string' ? JSON.parse(vehicle.financeData) : vehicle.financeData;
+          setFormDownpayment(fin?.minDownpayment ?? '');
+          setFormApr(fin?.aprRate ?? '');
+          setFormTermMonths(fin?.durationMonths ?? '');
+        } catch (e) { console.error('Error parsing financeData', e); }
       }
       if (vehicle.warrantyData) {
         try {
-          const war = JSON.parse(vehicle.warrantyData);
-          setFormWarrantyYears(war.durationYears || 3);
-          setFormWarrantyScope(war.scopeCoverage || '');
-        } catch (e) {}
+          const war = typeof vehicle.warrantyData === 'string' ? JSON.parse(vehicle.warrantyData) : vehicle.warrantyData;
+          setFormWarrantyYears(war?.durationYears ?? '');
+          setFormWarrantyScope(war?.scopeCoverage ?? '');
+        } catch (e) { console.error('Error parsing warrantyData', e); }
       }
     } else {
-      setFormDownpayment(0);
-      setFormApr(4.9);
-      setFormTermMonths(60);
-      setFormWarrantyYears(3);
+      setFormDownpayment('');
+      setFormApr('');
+      setFormTermMonths('');
+      setFormWarrantyYears('');
       setFormWarrantyScope('');
     }
   };
@@ -531,24 +646,24 @@ export default function AdministrativePanel() {
     setEditingVehicleId(null);
     setFormMake('');
     setFormModel('');
-    setFormYear(2026);
+    setFormYear('');
     setFormColor('');
-    setFormMileage(0);
-    setFormPrice(0);
-    setFormTransmission('Automatic');
+    setFormMileage('');
+    setFormPrice('');
+    setFormTransmission('');
     setFormEngine('');
-    setFormFuelType('Gasoline');
-    setFormBodyStyle('Coupe');
-    setFormSeats(2);
-    setFormDoors(2);
+    setFormFuelType('');
+    setFormBodyStyle('');
+    setFormSeats('');
+    setFormDoors('');
     setFormDescription('');
-    setFormStatus('ON_SALE');
+    setFormStatus('');
     setFormImages([]);
     setFormFinanceActive(false);
-    setFormDownpayment(0);
-    setFormApr(4.9);
-    setFormTermMonths(60);
-    setFormWarrantyYears(3);
+    setFormDownpayment('');
+    setFormApr('');
+    setFormTermMonths('');
+    setFormWarrantyYears('');
     setFormWarrantyScope('');
   };
 
@@ -601,10 +716,31 @@ export default function AdministrativePanel() {
   };
 
   // 8. Download PDF/Excel Analytical Reports from Reports engine
-  const handleDownloadReport = (type: 'inventory' | 'leads' | 'sales', format: 'pdf' | 'excel') => {
-    const url = `${BACKEND_URL}/api/settings/export?format=${format}&type=${type}`;
-    // Simple window open or download link
-    window.open(url, '_blank');
+  const handleDownloadReport = async (type: 'inventory' | 'leads' | 'sales', format: 'pdf' | 'excel') => {
+    try {
+      const token = localStorage.getItem('jl_auth_token');
+      const response = await axios.get(`${BACKEND_URL}/api/settings/export?format=${format}&type=${type}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], { 
+        type: format === 'pdf' 
+          ? 'application/pdf' 
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `jlautos_report_${type}_${new Date().toISOString().split('T')[0]}.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      alert('Failed to generate document. Please check your connection and try again.');
+    }
   };
 
   if (user?.role !== 'ADMIN') {
@@ -788,7 +924,7 @@ export default function AdministrativePanel() {
                           type="number"
                           required
                           value={formYear}
-                          onChange={(e) => setFormYear(Number(e.target.value))}
+                          onChange={(e) => setFormYear(e.target.value === '' ? '' : Number(e.target.value))}
                           className="bg-background border border-card-border text-foreground px-3 py-2.5 rounded text-sm outline-none focus:ring-1 focus:ring-accent font-mono"
                         />
                       </div>
@@ -796,10 +932,13 @@ export default function AdministrativePanel() {
                       <div className="flex flex-col space-y-1.5">
                         <label className="text-[10px] font-bold uppercase text-text-muted tracking-wider">Valuation price (USD)</label>
                         <input
-                          type="number"
+                          type="text"
                           required
-                          value={formPrice}
-                          onChange={(e) => setFormPrice(Number(e.target.value))}
+                          value={formPrice === '' ? '' : formPrice.toLocaleString('en-US')}
+                          onChange={(e) => {
+                            const parsed = e.target.value.replace(/[^0-9]/g, '');
+                            setFormPrice(parsed === '' ? '' : Number(parsed));
+                          }}
                           className="bg-background border border-card-border text-foreground px-3 py-2.5 rounded text-sm outline-none focus:ring-1 focus:ring-accent font-bold"
                         />
                       </div>
@@ -810,7 +949,7 @@ export default function AdministrativePanel() {
                           type="number"
                           required
                           value={formMileage}
-                          onChange={(e) => setFormMileage(Number(e.target.value))}
+                          onChange={(e) => setFormMileage(e.target.value === '' ? '' : Number(e.target.value))}
                           className="bg-background border border-card-border text-foreground px-3 py-2.5 rounded text-sm outline-none focus:ring-1 focus:ring-accent"
                         />
                       </div>
@@ -818,10 +957,12 @@ export default function AdministrativePanel() {
                       <div className="flex flex-col space-y-1.5">
                         <label className="text-[10px] font-bold uppercase text-text-muted tracking-wider">Gearbox Configuration</label>
                         <select
+                          required
                           value={formTransmission}
                           onChange={(e) => setFormTransmission(e.target.value)}
                           className="bg-background border border-card-border text-foreground px-3 py-2.5 rounded text-sm focus:ring-1 focus:ring-accent"
                         >
+                          <option value="" disabled>Select option...</option>
                           <option value="Automatic">Automatic (PDK / DSG)</option>
                           <option value="Manual">Manual Stick Shift</option>
                         </select>
@@ -840,16 +981,37 @@ export default function AdministrativePanel() {
                       </div>
 
                       <div className="flex flex-col space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase text-text-muted tracking-wider">Silhouette / Chassis</label>
+                        <label className="text-[10px] font-bold uppercase text-text-muted tracking-wider">Class</label>
                         <select
+                          required
                           value={formBodyStyle}
                           onChange={(e) => setFormBodyStyle(e.target.value)}
                           className="bg-background border border-card-border text-foreground px-3 py-2.5 rounded text-sm focus:ring-1 focus:ring-accent"
                         >
-                          <option value="Coupe">Coupe</option>
-                          <option value="Sedan">Sedan</option>
-                          <option value="SUV">SUV</option>
+                          <option value="" disabled>Select option...</option>
+                          <option value="Microcar">Microcar</option>
+                          <option value="Subcompact Car">Subcompact Car</option>
+                          <option value="Compact Car">Compact Car</option>
+                          <option value="Mid-size Car">Mid-size Car</option>
+                          <option value="Full-size Car">Full-size Car</option>
+                          <option value="Station Wagon">Station Wagon</option>
+                          <option value="Hatchback">Hatchback</option>
                           <option value="Convertible">Convertible</option>
+                          <option value="Sports Car">Sports Car</option>
+                          <option value="Supercar">Supercar</option>
+                          <option value="Muscle Car">Muscle Car</option>
+                          <option value="Compact SUV">Compact SUV</option>
+                          <option value="Mid-size SUV">Mid-size SUV</option>
+                          <option value="Full-size SUV">Full-size SUV</option>
+                          <option value="Crossover (CUV)">Crossover (CUV)</option>
+                          <option value="Minivan">Minivan</option>
+                          <option value="Compact Pickup Truck">Compact Pickup Truck</option>
+                          <option value="Mid-size Pickup Truck">Mid-size Pickup Truck</option>
+                          <option value="Full-size Pickup Truck">Full-size Pickup Truck</option>
+                          <option value="Heavy Duty Pickup Truck">Heavy Duty Pickup Truck</option>
+                          <option value="Cargo Van">Cargo Van</option>
+                          <option value="Passenger Van">Passenger Van</option>
+                          <option value="Luxury Vehicle">Luxury Vehicle</option>
                         </select>
                       </div>
 
@@ -858,8 +1020,9 @@ export default function AdministrativePanel() {
                           <label className="text-[9px] font-bold uppercase text-text-muted">Seats</label>
                           <input
                             type="number"
+                            required
                             value={formSeats}
-                            onChange={(e) => setFormSeats(Number(e.target.value))}
+                            onChange={(e) => setFormSeats(e.target.value === '' ? '' : Number(e.target.value))}
                             className="bg-background border border-card-border text-foreground p-2 rounded text-xs text-center"
                           />
                         </div>
@@ -867,8 +1030,9 @@ export default function AdministrativePanel() {
                           <label className="text-[9px] font-bold uppercase text-text-muted">Doors</label>
                           <input
                             type="number"
+                            required
                             value={formDoors}
-                            onChange={(e) => setFormDoors(Number(e.target.value))}
+                            onChange={(e) => setFormDoors(e.target.value === '' ? '' : Number(e.target.value))}
                             className="bg-background border border-card-border text-foreground p-2 rounded text-xs text-center"
                           />
                         </div>
@@ -889,10 +1053,12 @@ export default function AdministrativePanel() {
                       <div className="flex flex-col space-y-1.5">
                         <label className="text-[10px] font-bold uppercase text-text-muted tracking-wider">Fuel Chemistry</label>
                         <select
+                          required
                           value={formFuelType}
                           onChange={(e) => setFormFuelType(e.target.value)}
                           className="bg-background border border-card-border text-foreground px-3 py-2.5 rounded text-sm focus:ring-1 focus:ring-accent"
                         >
+                          <option value="" disabled>Select option...</option>
                           <option value="Gasoline">Gasoline</option>
                           <option value="Diesel">Diesel</option>
                           <option value="Electric">Electric</option>
@@ -903,10 +1069,12 @@ export default function AdministrativePanel() {
                       <div className="flex flex-col space-y-1.5">
                         <label className="text-[10px] font-bold uppercase text-text-muted tracking-wider">Catalog status Badge</label>
                         <select
+                          required
                           value={formStatus}
                           onChange={(e) => setFormStatus(e.target.value as any)}
                           className="bg-background border border-card-border text-foreground px-3 py-2.5 rounded text-sm focus:ring-1 focus:ring-accent font-bold"
                         >
+                          <option value="" disabled>Select option...</option>
                           <option value="ON_SALE">ON SALE / AVAILABLE</option>
                           <option value="RESERVED">RESERVED</option>
                           <option value="SOLD">SOLD</option>
@@ -1002,10 +1170,13 @@ export default function AdministrativePanel() {
                           <div className="flex flex-col space-y-1">
                             <label className="text-[9px] font-bold uppercase text-text-muted">Minimum Downpayment Target (USD)</label>
                             <input
-                              type="number"
-                              value={formDownpayment}
-                              onChange={(e) => setFormDownpayment(Number(e.target.value))}
-                              placeholder={`Default: $${(formPrice * 0.15).toLocaleString()}`}
+                              type="text"
+                              value={formDownpayment === '' ? '' : formDownpayment.toLocaleString('en-US')}
+                              onChange={(e) => {
+                                const parsed = e.target.value.replace(/[^0-9]/g, '');
+                                setFormDownpayment(parsed === '' ? '' : Number(parsed));
+                              }}
+                              placeholder={`Default: $${(Number(formPrice) * 0.15).toLocaleString()}`}
                               className="bg-card border border-card-border p-2 rounded text-xs"
                             />
                           </div>
@@ -1017,7 +1188,7 @@ export default function AdministrativePanel() {
                               type="number"
                               step="0.1"
                               value={formApr}
-                              onChange={(e) => setFormApr(Number(e.target.value))}
+                              onChange={(e) => setFormApr(e.target.value === '' ? '' : Number(e.target.value))}
                               className="bg-card border border-card-border p-2 rounded text-xs"
                             />
                           </div>
@@ -1028,7 +1199,7 @@ export default function AdministrativePanel() {
                             <input
                               type="number"
                               value={formTermMonths}
-                              onChange={(e) => setFormTermMonths(Number(e.target.value))}
+                              onChange={(e) => setFormTermMonths(e.target.value === '' ? '' : Number(e.target.value))}
                               className="bg-card border border-card-border p-2 rounded text-xs"
                             />
                           </div>
@@ -1039,7 +1210,7 @@ export default function AdministrativePanel() {
                             <input
                               type="number"
                               value={formWarrantyYears}
-                              onChange={(e) => setFormWarrantyYears(Number(e.target.value))}
+                              onChange={(e) => setFormWarrantyYears(e.target.value === '' ? '' : Number(e.target.value))}
                               className="bg-card border border-card-border p-2 rounded text-xs"
                             />
                           </div>
@@ -1170,7 +1341,7 @@ export default function AdministrativePanel() {
                   { label: 'All Requests', value: '' },
                   { label: 'Pending Approval', value: 'Pending Approval' },
                   { label: 'Approved', value: 'Approved' },
-                  { label: 'Modified', value: 'Modified by Dealer' },
+                  { label: 'Modified', value: 'Modified' },
                   { label: 'Cancelled', value: 'Cancelled' },
                   { label: 'Completed', value: 'Completed' },
                   { label: 'Rejected', value: 'Rejected' },
@@ -1189,7 +1360,27 @@ export default function AdministrativePanel() {
                 ))}
               </div>
 
-              {bookings.length > 0 ? (
+              {(() => {
+                const filteredBookings = bookings.filter((b) => {
+                  const matchStatus = bookingStatusFilter
+                    ? (bookingStatusFilter === 'Modified' ? b.status.startsWith('Modified') : b.status === bookingStatusFilter)
+                    : true;
+                  
+                  if (!matchStatus) return false;
+
+                  if (bookingSearchQuery) {
+                    const q = bookingSearchQuery.toLowerCase();
+                    const n = b.customer?.name?.toLowerCase() || '';
+                    const e = b.customer?.email?.toLowerCase() || '';
+                    const r = b.bookingReference?.toLowerCase() || '';
+                    const v = b.vehicle ? `${b.vehicle.make} ${b.vehicle.model}`.toLowerCase() : '';
+                    return n.includes(q) || e.includes(q) || r.includes(q) || v.includes(q);
+                  }
+                  
+                  return true;
+                });
+
+                return filteredBookings.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
@@ -1203,12 +1394,12 @@ export default function AdministrativePanel() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-card-border/60">
-                      {bookings.map((booking) => {
-                        const canApprove = ['Pending Approval', 'Modified by Dealer'].includes(booking.status);
-                        const canReject = booking.status === 'Pending Approval';
-                        const canCancel = ['Approved', 'Modified by Dealer'].includes(booking.status);
-                        const canModify = ['Pending Approval', 'Approved', 'Modified by Dealer'].includes(booking.status);
-                        const canComplete = ['Approved', 'Modified by Dealer'].includes(booking.status);
+                      {filteredBookings.map((booking) => {
+                        const canApprove = ['Pending Approval', 'Modified by Customer'].includes(booking.status);
+                        const canReject = ['Pending Approval', 'Modified by Dealer', 'Modified by Customer'].includes(booking.status);
+                        const canCancel = ['Approved', 'Modified by Dealer', 'Modified by Customer'].includes(booking.status);
+                        const canModify = ['Pending Approval', 'Approved', 'Modified by Dealer', 'Modified by Customer'].includes(booking.status);
+                        const canComplete = ['Approved', 'Modified by Dealer', 'Modified by Customer'].includes(booking.status);
                         const canDelete = ['Completed', 'Cancelled', 'Rejected'].includes(booking.status);
 
                         return (
@@ -1248,7 +1439,7 @@ export default function AdministrativePanel() {
                               <span className={`px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded border ${
                                 booking.status === 'Approved' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
                                 booking.status === 'Pending Approval' ? 'bg-blue-500/10 border-blue-500/20 text-blue-500' :
-                                booking.status === 'Modified by Dealer' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
+                                booking.status.startsWith('Modified') ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
                                 booking.status === 'Cancelled' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
                                 booking.status === 'Rejected' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
                                 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400' // Completed
@@ -1271,17 +1462,6 @@ export default function AdministrativePanel() {
                                   </button>
                                 )}
                                 
-                                {canModify && (
-                                  <button
-                                    onClick={() => startModifyBooking(booking)}
-                                    disabled={!!bookingActionLoading[booking.id]}
-                                    className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer"
-                                    title="Reschedule / Change Vehicle"
-                                  >
-                                    Modify
-                                  </button>
-                                )}
-
                                 {canComplete && (
                                   <button
                                     onClick={() => handleCompleteBooking(booking.id)}
@@ -1290,6 +1470,23 @@ export default function AdministrativePanel() {
                                     title="Mark Completed"
                                   >
                                     Complete
+                                  </button>
+                                )}
+
+                                {canModify && (
+                                  <button
+                                    onClick={() => {
+                                      setModifyDate(booking.bookingDate ? booking.bookingDate.split('T')[0] : '');
+                                      setModifyTimeSlot(booking.bookingTime || '');
+                                      setModifyVehicleId(booking.vehicleId || '');
+                                      setModifyNotes(booking.dealerNotes || '');
+                                      setModifyModal({ open: true, booking });
+                                    }}
+                                    disabled={!!bookingActionLoading[booking.id]}
+                                    className="bg-amber-500/15 hover:bg-amber-500/25 disabled:opacity-50 text-amber-400 border border-amber-500/30 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                                    title="Modify Appointment"
+                                  >
+                                    Modify
                                   </button>
                                 )}
 
@@ -1317,10 +1514,10 @@ export default function AdministrativePanel() {
 
                                 {canDelete && (
                                   <button
-                                    onClick={() => handleSoftDeleteBooking(booking.id)}
+                                    onClick={() => setDeleteModal({ open: true, bookingId: booking.id, customerName: booking.customer?.name || 'Customer' })}
                                     disabled={!!bookingActionLoading[booking.id]}
-                                    className="bg-black/40 hover:bg-red-950/20 disabled:opacity-50 text-text-muted hover:text-red-400 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase cursor-pointer"
-                                    title="Archive / Soft Delete"
+                                    className="bg-black/30 hover:bg-black/50 disabled:opacity-50 text-text-muted px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                                    title="Archive Booking"
                                   >
                                     Delete
                                   </button>
@@ -1339,7 +1536,8 @@ export default function AdministrativePanel() {
                   <h4 className="font-bold text-sm uppercase text-foreground">No VIP Bookings</h4>
                   <p className="text-xs text-text-muted">No scheduled viewings match the current filter criteria.</p>
                 </div>
-              )}
+              );
+              })()}
             </div>
           )}
 
@@ -1547,7 +1745,7 @@ export default function AdministrativePanel() {
                 {/* Section A: Contact Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col space-y-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Concierge Phone Number</label>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Reservation Phone Number</label>
                     <input
                       type="text"
                       placeholder="+1 (214) 608-0670"
@@ -1713,7 +1911,7 @@ export default function AdministrativePanel() {
               <X size={20} />
             </button>
             <div className="border-b border-card-border pb-3">
-              <span className="text-[9px] font-extrabold text-accent uppercase tracking-widest font-mono">CONCIERGE CRM</span>
+              <span className="text-[9px] font-extrabold text-accent uppercase tracking-widest font-mono">RESERVATIONS CRM</span>
               <h3 className="text-xl font-bold uppercase text-foreground mt-0.5">Reschedule Appointment</h3>
             </div>
             
@@ -1893,6 +2091,46 @@ export default function AdministrativePanel() {
                   className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
                 >
                   Confirm Cancellation
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Booking Modal */}
+      {deleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-card border border-card-border p-6 rounded-2xl shadow-2xl relative space-y-5">
+            <button
+              onClick={() => setDeleteModal(null)}
+              className="absolute top-4 right-4 text-text-muted hover:text-foreground cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <div className="border-b border-card-border pb-3">
+              <span className="text-[9px] font-extrabold text-red-500 uppercase tracking-widest font-mono">ARCHIVE RECORD</span>
+              <h3 className="text-xl font-bold uppercase text-foreground mt-0.5">Delete Booking</h3>
+            </div>
+            
+            <form onSubmit={handleSoftDeleteBookingSubmit} className="space-y-4 text-xs">
+              <p className="text-text-muted">
+                Are you sure you want to archive this booking request for <strong className="text-foreground">{deleteModal.customerName}</strong>? This action cannot be fully undone.
+              </p>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-card-border/50">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModal(null)}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white px-4 py-2 rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Confirm Delete
                 </button>
               </div>
             </form>
